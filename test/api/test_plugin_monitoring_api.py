@@ -25,11 +25,10 @@ if config_path is None:
     exit
 
 
-def _get_credentials():
+def _get_configs():
     return utils.load_yaml_from_file(config_path)
 
-
-class TestCollector(TestCase):
+class TestCollectors(TestCase):
 
     # def test_init(self):
     #     v_info = self.inventory.Collector.init({'options': {}})
@@ -42,7 +41,7 @@ class TestCollector(TestCase):
     #     print_json(v_info)
 
     def test_collect(self):
-        config = _get_credentials()
+        config = _get_configs()
         self.domain_id = config.get('domain_id')
         self.connector_conf = config.get('InventoryConnector')
         self.transaction = Transaction({

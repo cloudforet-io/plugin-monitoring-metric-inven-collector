@@ -30,6 +30,10 @@ class CollectorManager(BaseManager):
         domain_id = params.get('domain_id')
 
         try:
+            #get servers
+
+            #get cloud services
+
             collecting_items = inventory_manager.get_resources(domain_id)
             return collecting_items
 

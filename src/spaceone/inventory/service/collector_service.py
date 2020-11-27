@@ -42,6 +42,27 @@ class CollectorService(BaseService):
 
         return {}
 
+    @transaction
+    @check_required(['options', 'secret_data', 'filter'])
+    def list_resources(self, params):
+        # thread 필요?
+        """ Get quick list of resources
+        Args:
+            params:
+                - options
+                - secret_data
+                - filter
+
+        Returns: list of resources
+        """
+
+        start_time = time.time()
+
+        for resource in self.collector_manager.list_resources(params):
+            yield resource.to_primitive()
+
+        print(f'############## TOTAL FINISHED {time.time() - start_time} Sec ##################')
+
     # @transaction
     # @check_required(['options', 'secret_data', 'filter'])
     # def list_resources(self, params):
@@ -70,26 +91,5 @@ class CollectorService(BaseService):
     #                 yield resource.to_primitive()
     #
     #     print(f'############## TOTAL FINISHED {time.time() - start_time} Sec ##################')
-
-    @transaction
-    @check_required(['options', 'secret_data', 'filter'])
-    def list_resources(self, params):
-        # thread 필요?
-        """ Get quick list of resources
-        Args:
-            params:
-                - options
-                - secret_data
-                - filter
-
-        Returns: list of resources
-        """
-
-        start_time = time.time()
-
-        for resource in self.collector_manager.list_resources(params):
-            yield resource.to_primitive()
-
-        print(f'############## TOTAL FINISHED {time.time() - start_time} Sec ##################')
 
 
