@@ -1,4 +1,6 @@
 import google.oauth2.service_account
+import googleapiclient
+import googleapiclient.discovery
 from spaceone.core.error import *
 from spaceone.inventory.error.custom import *
 from spaceone.core.connector import BaseConnector
@@ -20,7 +22,7 @@ class GoogleCloudConnector(BaseConnector):
 
         secret_data(dict)
             - type: ..
-            - project_id: ...x
+            - project_id: ...
             - token_uri: ...
             - ...
         """
@@ -33,6 +35,16 @@ class GoogleCloudConnector(BaseConnector):
     def verify(self, **kwargs):
         if self.client is None:
             self.set_connect(**kwargs)
+
+    def set_connect(self, **kwargs):
+        secret_data = kwargs.get('secret_data')
+        try:
+            credentials = google.oauth2.service_account.Credentials.from_service_account_info(secret_data)
+            self.client = googleapiclient.discovery.build(self.google_client_service, self.version,
+                                                          credentials=credentials)
+        except Exception as e:
+            print(e)
+            raise ERROR_ATHENTICATION_VERIFY()
 
     def generate_query(self, **query):
         query.update({

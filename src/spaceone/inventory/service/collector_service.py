@@ -2,6 +2,7 @@ import time
 import logging
 import concurrent.futures
 from spaceone.core.service import *
+from spaceone.inventory.libs.manager import GoogleCloudManager
 from spaceone.inventory.manager.collector_manager import CollectorManager
 
 _LOGGER = logging.getLogger(__name__)
@@ -9,10 +10,12 @@ MAX_WORKER = 20
 SUPPORTED_RESOURCE_TYPE = ['inventory.Server', 'inventory.CloudService']
 FILTER_FORMAT = []
 
+
 @authentication_handler
 class CollectorService(BaseService):
     def __init__(self, metadata):
         super().__init__(metadata)
+
         self.collector_manager: CollectorManager = self.locator.get_manager('CollectorManager')
 
     @check_required(['options'])
@@ -36,9 +39,9 @@ class CollectorService(BaseService):
         """
         options = params['options']
         secret_data = params.get('secret_data', {})
-
         if secret_data != {}:
-            self.get_account_id(secret_data)
+            google_manager = GoogleCloudManager()
+            active = google_manager.verify({}, secret_data)
 
         return {}
 
@@ -57,7 +60,6 @@ class CollectorService(BaseService):
         """
 
         start_time = time.time()
-
         for resource in self.collector_manager.list_resources(params):
             yield resource.to_primitive()
 

@@ -1,2 +1,2 @@
-from spaceone.inventory.manager.monitoring.monitoring_plugin_manager import MonitoringPluginManager
+from spaceone.inventory.manager.monitoring.monitoring_manager import MonitoringManager
 from spaceone.inventory.manager.monitoring.inventory_manager import InventoryManager

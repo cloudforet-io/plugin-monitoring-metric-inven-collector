@@ -21,9 +21,9 @@ with open('VERSION', 'r') as f:
     f.close()
 
 setup(
-    name='plugin-monitoring',
+    name='plugin-google-cloud-power-state',
     version=VERSION,
-    description='Plugin monitoring global collector',
+    description='Google cloud service inventory collector',
     long_description='',
     url='https://www.spaceone.dev/',
     author='MEGAZONE SpaceONE Team',
@@ -34,7 +34,10 @@ setup(
         'spaceone-core',
         'spaceone-api',
         'spaceone-tester',
-        'schematics'
+        'schematics',
+        'moto',
+        'google-auth',
+        'google-api-python-client'
     ],
     zip_safe=False,
 )

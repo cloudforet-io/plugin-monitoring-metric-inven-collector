@@ -1,7 +1,7 @@
 spaceone-core
 spaceone-api
+spaceone-tester
 docker
-boto3
 schematics
+google-api-python-client
 moto
-arnparse

@@ -3,79 +3,111 @@ __all__ = ['InventoryManager']
 import logging
 from spaceone.core.manager import BaseManager
 from spaceone.inventory.error import *
+from spaceone.core.transaction import Transaction
 from spaceone.inventory.connector.inventory_connector import InventoryConnector
 
 _LOGGER = logging.getLogger(__name__)
+CLOUD_PROVIDER = ['aws', 'google_cloud', 'azure']
 
 
 class InventoryManager(BaseManager):
 
-    def __init__(self, params):
+    def __init__(self, params, **kwargs):
         self.params = params
-        self.inventory_connector: InventoryConnector = self.locator.get_connector('InventoryConnector')
+        self.domain_id = None
+        self.connector = None
+        super().__init__(**kwargs)
 
-    def get_resources(self, domain_id):
+    def set_connector(self):
+        transaction, inventory_config, domain_id = self._get_connect_config(self.params.get('secret_data', {}))
+        self.connector = InventoryConnector(transaction, inventory_config)
+        self.domain_id = domain_id
 
-        resource_items = []
-        servers = self.inventory_connector.list_servers(self._get_server_query(), domain_id)
+    def list_servers(self):
+        query = self._get_server_query()
+        servers = self.connector.list_servers(query, self.domain_id)
         server_list = servers.get('results', [])
-        resource_items.extend(server_list)
+        return server_list
 
-        # 1차에서는 일단 서버만 해서 돌아가는 것 확인하기
-        # cloud_svcs = self.connector.list_cloud_services(self._get_server_query(), domain_id)
-        # cloud_svcs_list = cloud_svcs.get('results', [])
-        # resource_items.extend(cloud_svcs_list)
+    providers = {'aws': [],
+                 'google_cloud': [],
+                 'azure': []
+                 }
 
-        return resource_items
+    def list_cloud_services(self):
+        cloud_service_resources = []
+
+        for provider in CLOUD_PROVIDER:
+            resources = self.connector.list_cloud_services(self._get_cloud_svc_query(provider), self.domain_id)
+            cloud_service_resources.extend(resources.get('results', []))
+
+        return cloud_service_resources
+
+    @staticmethod
+    def _get_connect_config(config_data):
+        transaction = Transaction({
+            'token': config_data.get('access_token', None)
+        })
+        inventory_config = config_data.get('InventoryConnector', None)
+        return transaction, inventory_config, config_data.get('domain_id')
 
     @staticmethod
     def _get_server_query():
         return {
-            "query": {
-                "only": [
-                    "region_code",
-                    "name",
-                    "collection_info.secrets",
-                    "reference.resource_id",
-                    "provider",
-                    "data.cloudwatch",
-                    "data.stackdriver"
-                ]
-            }
+            "only": [
+                "region_code",
+                "name",
+                "collection_info.secrets",
+                "reference.resource_id",
+                "provider",
+                "data.cloudwatch",
+                "data.stackdriver"
+            ]
         }
 
     @staticmethod
-    def _get_cloud_svc_query(provider, flag):
-        query = {
-            "provider": provider,
-            "query": {
-                "only": [
-                    "name",
-                    "region_code",
-                    "collection_info.secrets",
-                    "reference.resource_id",
-                    "provider",
-                    "data.cloudwatch",
-                    "data.stackdriver"
-                ]
+    def _get_cloud_svc_query(provider):
+        cloud_service_filters = {
+            'aws': {
+                'cloud_service_group': ["EC2", "S3", "RDS", "DocumentDB"],
+                'cloud_service_type': ["Volume", "Bucket", "Database", "Cluster"]
+            },
+            'google_cloud': {
+                'cloud_service_group': ['ComputeEngine', 'CloudSQL'],
+                'cloud_service_type': ['Disk', 'Instance']
+            },
+            'azure': {
+                'cloud_service_group': [],
+                'cloud_service_type': []
             }
         }
 
-        if flag == 'server':
-            pass
-        else:
-            query = {
-                "provider": provider,
-                "query": {
-                    "only": [
-                        "name",
-                        "region_code",
-                        "collection_info.secrets",
-                        "reference.resource_id",
-                        "provider",
-                        "data.cloudwatch",
-                        "data.stackdriver"
-                    ]
+        filter_contents = cloud_service_filters.get(provider)
+
+        return {
+            "filter": [{
+                "k": 'provider',
+                "v": provider,
+                "o": "eq"
+                },
+                {
+                    "k": 'cloud_service_group',
+                    "v": filter_contents.get('cloud_service_group'),
+                    "o": "in"
+                },
+                {
+                    "k": 'cloud_service_type',
+                    "v": filter_contents.get('cloud_service_type'),
+                    "o": "in"
                 }
-            }
-        return query
+            ],
+            "only": ["cloud_service_id",
+                     "cloud_service_group",
+                     "cloud_service_type",
+                     "reference.resource_id",
+                     "data.cloudwatch",
+                     "data.stackdriver",
+                     "provider"
+
+                     ]
+        }

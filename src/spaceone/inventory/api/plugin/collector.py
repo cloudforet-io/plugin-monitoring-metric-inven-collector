@@ -30,13 +30,24 @@ class Collector(BaseAPI, collector_pb2_grpc.CollectorServicer):
         collector_svc: CollectorService = self.locator.get_service('CollectorService', metadata)
 
         with collector_svc:
-            for resource in collector_svc.list_resources(params):
-                res = {
-                    'state': (resource['state']),
-                    'message': '',
-                    'resource_type': (resource['resource_type']),
-                    'match_rules': change_struct_type(resource['match_rules']),
-                    'resource': change_struct_type(resource['resource']),
-                    'options': change_struct_type(resource['options'])
-                }
-                yield self.locator.get_info('ResourceInfo', res)
+            try:
+                for resource in collector_svc.list_resources(params):
+                    print(f'params : {params}')
+                    res = {
+                        'state': (resource['state']),
+                        'message': '',
+                        'resource_type': (resource['resource_type']),
+                        'match_rules': change_struct_type(resource['match_rules']),
+                        'resource': change_struct_type(resource['resource']),
+                        'options': change_struct_type(resource.get('options', {}))
+                    }
+
+                    yield self.locator.get_info('ResourceInfo', res)
+
+            except Exception as e:
+                print(traceback.format_exc())
+                print(f'[ERROR: ResourceInfo]: {e}')
+
+
+
+

@@ -6,8 +6,9 @@ from spaceone.core.manager import BaseManager
 from spaceone.inventory.connector.inventory_connector import InventoryConnector
 from spaceone.inventory.connector.monitoring_connector import MonitoringConnector
 from spaceone.inventory.manager.monitoring.inventory_manager import InventoryManager
-from spaceone.inventory.manager.monitoring.monitoring_plugin_manager import MonitoringPluginManager
-
+from spaceone.inventory.manager.monitoring.monitoring_manager import MonitoringManager
+from spaceone.core.transaction import Transaction
+from pprint import pprint
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -24,20 +25,28 @@ class CollectorManager(BaseManager):
         return ''
 
     def list_resources(self, params):
-        inventory_manager: InventoryManager = InventoryManager(params)
-        monitoring_manager: MonitoringPluginManager = MonitoringPluginManager(params)
+        resources = []
 
-        domain_id = params.get('domain_id')
+        inventory_manager: InventoryManager = InventoryManager(params)
+        inventory_manager.set_connector()
+
+        monitoring_manager: MonitoringManager = MonitoringManager(params)
+        monitoring_manager.set_connector()
 
         try:
-            #get servers
+            servers = inventory_manager.list_servers()
+            resources.extend(servers)
 
-            #get cloud services
+            cloud_services = inventory_manager.list_cloud_services()
+            resources.extend(cloud_services)
 
-            collecting_items = inventory_manager.get_resources(domain_id)
-            return collecting_items
+
+
+
 
         except Exception as e:
-            print(f'[ERROR: {params["region_name"]}] : {e}')
+            print(f'[ERROR: {e}]')
             raise e
+
+        return []
 
