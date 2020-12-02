@@ -56,13 +56,13 @@ class Server(Model):
         }
 
 
-class ComputeInstanceResource(CloudServiceResource):
+class ServerInstanceResource(CloudServiceResource):
     cloud_service_group = StringType(default='ComputeEngine')
     cloud_service_type = StringType(default='Instance')
     data = ModelType(Server)
 
 
-class ComputeInstanceResponse(CloudServiceResponse):
+class ServerInstanceResponse(CloudServiceResponse):
     match_rules = DictType(ListType(StringType), default={'1': ['reference.resource_id']})
     resource_type = StringType(default='inventory.Server')
-    resource = ModelType(ComputeInstanceResource)
+    resource = ModelType(ServerInstanceResource)

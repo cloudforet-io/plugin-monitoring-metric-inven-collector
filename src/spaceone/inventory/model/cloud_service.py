@@ -43,21 +43,22 @@ class Monitoring(Model):
     network = ModelType(NetworkCPUMonitoring, serialize_when_none=False)
 
 
-class CloudServices(Model):
+class CloudService(Model):
     monitoring = ModelType(Monitoring, default={})
+
     def reference(self, resource_id):
         return {
             "resource_id": resource_id,
         }
 
 
-class ComputeInstanceResource(CloudServiceResource):
+class CloudServiceInstanceResource(CloudServiceResource):
     cloud_service_group = StringType(default='ComputeEngine')
     cloud_service_type = StringType(default='Instance')
-    data = ModelType(CloudServices)
+    data = ModelType(CloudService)
 
 
-class ComputeInstanceResponse(CloudServiceResponse):
+class CloudServiceResponse(CloudServiceResponse):
     match_rules = DictType(ListType(StringType), default={'1': ['reference.resource_id']})
     resource_type = StringType(default='inventory.Server')
-    resource = ModelType(ComputeInstanceResource)
+    resource = ModelType(CloudServiceInstanceResource)
