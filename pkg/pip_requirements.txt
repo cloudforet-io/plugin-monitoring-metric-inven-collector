@@ -1,0 +1,7 @@
+spaceone-core
+spaceone-api
+spaceone-tester
+docker
+schematics
+google-api-python-client
+moto

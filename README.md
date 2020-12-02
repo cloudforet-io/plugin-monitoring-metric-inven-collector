@@ -1,2 +1,9 @@
-# plugin-monitoring
-monitoring plugin collector categorized metric over clouds that includes aws, google cloud, azure 
+# plugin-aws-power-state
+
+Plugin for Collect Monitoring with schedule
+- CPU
+- Memory
+- Disk
+- Network
+
+# Data Sample

@@ -1,0 +1,268 @@
+{
+    "cpu":{
+        "utilization":{
+            "unit":"%",
+            "aws":[
+                {
+                    "metric":"CPUUtilization",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "google_cloud":[
+                {
+                    "metric":"compute.googleapis.com/instance/cpu/utilization",
+                    "unit":"1",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "azure":[
+                {
+                    "metric":"",
+                    "resource":[
+
+                    ]
+                }
+            ]
+        }
+    },
+    "memory":{
+        "usage":{
+            "unit":"%",
+            "aws":[
+
+            ],
+            "google_cloud":[
+
+            ],
+            "azure":[
+
+            ]
+        },
+        "total":{
+            "unit":"bytes",
+            "aws":[
+
+            ],
+            "google_cloud":[
+                {
+                    "metric":"compute.googleapis.com/instance/memory/balloon/ram_size",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "azure":[
+
+            ]
+        },
+        "used":{
+            "unit":"bytes",
+            "aws":[
+
+            ],
+            "google_cloud":[
+                {
+                    "metric":"compute.googleapis.com/instance/memory/balloon/ram_used",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "azure":[
+
+            ]
+        }
+    },
+    "disk":{
+        "write_iops":{
+            "unit":"counts",
+            "aws":[
+                {
+                    "metric":"EBSWriteOps",
+                    "unit":"1",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "google_cloud":[
+                {
+                    "metric":"EBSWriteOps",
+                    "unit":"1",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "azure":[
+
+            ]
+        },
+        "write_throughput":{
+            "unit":"bytes",
+            "aws":[
+                {
+                    "metric":"EBSWriteBytes",
+                    "unit":"1",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "google_cloud":[
+                {
+                    "metric":"EBSWriteOps",
+                    "unit":"1",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "azure":[
+
+            ]
+        },
+        "read_iops":{
+            "unit":"counts",
+            "aws":[
+                {
+                    "metric":"EBSReadOps",
+                    "unit":"1",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "google_cloud":[
+                {
+                    "metric":"EBSWriteOps",
+                    "unit":"1",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "azure":[
+
+            ]
+        },
+        "read_throughput":{
+            "unit":"bytes",
+            "aws":[
+                {
+                    "metric":"EBSReadBytes",
+                    "unit":"1",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "google_cloud":[
+                {
+                    "metric":"EBSWriteOps",
+                    "unit":"1",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "azure":[
+
+            ]
+        }
+    },
+    "network":{
+        "received_throughput":{
+            "unit":"bytes",
+            "aws":[
+                {
+                    "metric":"NetworkPacketsIn",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "google_cloud":[
+                {
+                    "metric":"compute.googleapis.com/instance/network/received_bytes_count",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "azure":[
+
+            ]
+        },
+        "received_pps":{
+            "unit":"counts",
+            "aws":[
+                {
+                    "metric":"NetworkIn",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "google_cloud":[
+                {
+                    "metric":"compute.googleapis.com/instance/network/received_packets_count",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "azure":[
+
+            ]
+        },
+        "sent_throughput":{
+            "unit":"bytes",
+            "aws":[
+                {
+                    "metric":"NetworkPacketsOut",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "google_cloud":[
+                {
+                    "metric":"compute.googleapis.com/instance/network/sent_bytes_count",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "azure":[
+
+            ]
+        },
+        "sent_pps":{
+            "unit":"counts",
+            "aws":[
+                {
+                    "metric":"NetworkOut",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "google_cloud":[
+                {
+                    "metric":"compute.googleapis.com/instance/network/sent_packets_count",
+                    "resource":[
+
+                    ]
+                }
+            ],
+            "azure":[
+
+            ]
+        }
+    }
+}
