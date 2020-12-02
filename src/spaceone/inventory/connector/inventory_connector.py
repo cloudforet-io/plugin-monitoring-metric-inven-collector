@@ -48,8 +48,6 @@ class InventoryConnector(BaseConnector):
         return self._change_message(response)
 
     def list_servers(self, query, domain_id):
-        print(query)
-        print(domain_id)
         response = self.client.Server.list({
             'query': query,
             'domain_id': domain_id

@@ -55,6 +55,7 @@ class InventoryManager(BaseManager):
     def _get_server_query():
         return {
             "only": [
+                "server_id",
                 "region_code",
                 "name",
                 "collection_info.secrets",

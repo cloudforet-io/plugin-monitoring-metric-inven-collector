@@ -16,90 +16,38 @@ class MonitoringConnector(BaseConnector):
 
     def __init__(self, transaction, config):
         super().__init__(transaction, config)
-        self.client = None
+        self._check_config()
+        self._init_client()
 
-    def initialize(self, endpoint):
-        e = parse_endpoint(endpoint)
-        self.client = pygrpc.client(endpoint=f'{e.get("hostname")}:{e.get("port")}', version='plugin')
+    def _init_client(self):
+        for version, uri in self.config['endpoint'].items():
+            e = parse_endpoint(uri)
+            self.client = pygrpc.client(endpoint=f'{e.get("hostname")}:{e.get("port")}', version=version)
 
-    def init(self, options):
-        response = self.client.DataSource.init({
-            'options': options,
+    def _check_config(self):
+        if 'endpoint' not in self.config:
+            raise ERROR_CONNECTOR_CONFIGURATION(backend=self.__class__.__name__)
+
+        if len(self.config['endpoint']) > 1:
+            raise ERROR_CONNECTOR_CONFIGURATION(backend=self.__class__.__name__)
+
+    def list_data_source(self, query, domain_id):
+        response = self.client.DataSource.list({
+            'query': query,
+            'domain_id': domain_id
         }, metadata=self.transaction.get_connection_meta())
 
         return self._change_message(response)
-        # return response
 
-    def verify(self, schema, options, secret_data):
-        params = {
-            'options': options,
-            'secret_data': secret_data
-        }
+    def metric_list(self, param, domain_id):
+        param.update({'domain_id': domain_id})
+        response = self.client.Metric.list(param, metadata=self.transaction.get_connection_meta())
+        return self._change_message(response)
 
-        if schema:
-            params.update({
-                'schema': schema
-            })
-
-        self.client.DataSource.verify(params, metadata=self.transaction.get_connection_meta())
-
-    def list_metrics(self, schema, options, secret_data, resource):
-        params = {
-            'options': options,
-            'secret_data': secret_data,
-            'resource': resource
-        }
-
-        if schema:
-            params.update({
-                'schema': schema
-            })
-
-        responses = self.client.Metric.list(params, metadata=self.transaction.get_connection_meta())
-        message = self._change_message(responses)
-        return message
-
-    def get_metric_data(self, schema, options, secret_data, resource, metric, start, end, period, stat):
-        params = {
-            'options': options,
-            'secret_data': secret_data,
-            'resource': resource,
-            'metric': metric,
-            'start': start,
-            'end': end,
-            'period': period,
-            'stat': stat
-        }
-
-        if schema:
-            params.update({
-                'schema': schema
-            })
-
-        responses = self.client.Metric.get_data(params, metadata=self.transaction.get_connection_meta())
-        return self._change_message(responses)
-
-    def list_logs(self, schema, options, secret_data, resource, plugin_filter, start, end, sort, limit):
-        params = {
-            'options': options,
-            'secret_data': secret_data,
-            'resource': resource,
-            'filter': plugin_filter,
-            'start': start,
-            'end': end,
-            'sort': sort,
-            'limit': limit
-        }
-
-        if schema:
-            params.update({
-                'schema': schema
-            })
-
-        responses = self.client.Log.list(params, metadata=self.transaction.get_connection_meta())
-
-        for response in responses:
-            yield self._change_message(response)
+    def metric_get_data(self, param, domain_id):
+        param.update({'domain_id': domain_id})
+        response = self.client.Metric.get_data(param, metadata=self.transaction.get_connection_meta())
+        return self._change_message(response)
 
     @staticmethod
     def _change_message(message):

@@ -22,14 +22,58 @@ class MonitoringManager(BaseManager):
         self.connector = MonitoringConnector(transaction, inventory_config)
         self.domain_id = domain_id
 
-    def get_metric_data(self, schema, options, secret_data, resource, metric, start, end, period, stat):
+    def list_data_source(self):
+        query = self._get_data_source_query()
+        data_sources = self.connector.list_data_source(query, self.domain_id)
+        data_source_list = data_sources.get('results', [])
+        return data_source_list
 
-        return self.connector.get_metric_data(schema, options, secret_data, resource, metric, start, end, period, stat)
+    def get_metric_list(self, data_source_id, resource_type, resources):
+        param = {
+            'data_source_id': data_source_id,
+            'resource_type': resource_type,
+            'resources': [resources]
+        }
+        metrics = self.connector.metric_list(param, self.domain_id)
+        metric_list = metrics.get('metrics', [])
+        return metric_list
+
+    def get_metric_data(self, data_source_id, resource_type, resources, metric, start, end, period, stat):
+        param = {
+            'data_source_id': data_source_id,
+            'resource_type': resource_type,
+            'resources': [resources],
+            'metric': metric,
+            'start': start,
+            'end': end,
+        }
+        if period:
+            param.update({'period': period})
+
+        if stat:
+            param.update({'stat': stat})
+
+        metrics = self.connector.metric_get_data(param, self.domain_id)
+        return metrics
 
     @staticmethod
     def _get_connect_config(config_data):
         transaction = Transaction({
-            'token': config_data.get('access_token', None)
+            'token': config_data.get('access_token')
         })
-        inventory_config = config_data.get('MonitoringPluginConnector', None)
+        inventory_config = config_data.get('MonitoringConnector')
         return transaction, inventory_config, config_data.get('domain_id')
+
+    @staticmethod
+    def _get_data_source_query():
+        query = {}
+        # Please, update filter option for further use if it needs
+        query.update({
+            "filter": [{
+                "k": 'monitoring_type',
+                "v": 'METRIC',
+                "o": "eq"
+            }]
+        })
+
+        return query
