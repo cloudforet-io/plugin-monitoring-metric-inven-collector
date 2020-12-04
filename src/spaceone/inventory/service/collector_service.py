@@ -48,7 +48,6 @@ class CollectorService(BaseService):
     @transaction
     @check_required(['options', 'secret_data', 'filter'])
     def list_resources(self, params):
-        # thread 필요?
         """ Get quick list of resources
         Args:
             params:
@@ -60,6 +59,7 @@ class CollectorService(BaseService):
         """
 
         start_time = time.time()
+        print("[ EXECUTOR START ]")
         for resource in self.collector_manager.list_resources(params):
             yield resource.to_primitive()
 

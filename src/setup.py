@@ -35,7 +35,6 @@ setup(
         'spaceone-api',
         'spaceone-tester',
         'schematics',
-        'numpy',
         'moto'
     ],
     zip_safe=False,
