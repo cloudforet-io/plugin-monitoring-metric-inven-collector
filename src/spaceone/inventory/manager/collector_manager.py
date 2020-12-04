@@ -131,7 +131,8 @@ class CollectorManager(BaseManager):
                                 # print()
 
                                 if metric_data[0].get('labels') != [] and metric_data[1].get('labels') != []:
-                                    server_monitoring_vo[provider][dict_key[0]].update({dict_key[1]: self._get_collect_data_per_state(metric_data)})
+                                    server_monitoring_vo[provider][dict_key[0]].update(
+                                        {dict_key[1]: self._get_collect_data_per_state(metric_data)})
 
         return server_monitoring_vo
 
@@ -227,6 +228,7 @@ class CollectorManager(BaseManager):
                 data_source_infos.update({provider: [source_info]})
 
         return data_source_infos
+
     @staticmethod
     def _get_metric_param(provider, data_source_id, source_type, server_ids, metric, start, end):
         return {
@@ -251,11 +253,7 @@ class CollectorManager(BaseManager):
             })
         return collected_data_map
 
-    @staticmethod
-    def _get_metric_info(metric_path):
-        with open(metric_path) as json_file:
-            json_data = json.load(json_file)
-            return json_data
+
 
     @staticmethod
     def _get_collective_metric_key(metric_infos):
@@ -266,3 +264,327 @@ class CollectorManager(BaseManager):
                     metric_keys.append(f'{metric_info}+{metric}')
 
         return metric_keys
+
+    @staticmethod
+    def _get_metric_info(metric_path):
+        # with open(metric_path) as json_file:
+        #     json_data = json.load(json_file)
+        #     return json_data
+        return {
+            "cpu": {
+                "utilization": {
+                    "unit": "%",
+                    "aws": [
+                        {
+                            "metric": "CPUUtilization",
+                            "resource_type": "inventory.Server"
+                        }
+                    ],
+                    "google_cloud": [
+                        {
+                            "metric": "compute.googleapis.com/instance/cpu/utilization",
+                            "resource": [
+
+                            ]
+                        }
+                    ],
+                    "azure": [
+                        {
+                            "metric": "Percentage CPU",
+                            "resource": [
+
+                            ]
+                        }
+                    ]
+                }
+            },
+            "memory": {
+                "usage": {
+                    "unit": "%",
+                    "aws": [
+
+                    ],
+                    "google_cloud": [
+
+                    ],
+                    "azure": [
+
+                    ]
+                },
+                "total": {
+                    "unit": "bytes",
+                    "aws": [
+
+                    ],
+                    "google_cloud": [
+                        {
+                            "metric": "compute.googleapis.com/instance/memory/balloon/ram_size",
+                            "resource": [
+
+                            ]
+                        }
+                    ],
+                    "azure": [
+
+                    ]
+                },
+                "used": {
+                    "unit": "bytes",
+                    "aws": [
+
+                    ],
+                    "google_cloud": [
+                        {
+                            "metric": "compute.googleapis.com/instance/memory/balloon/ram_used",
+                            "resource": [
+
+                            ]
+                        }
+                    ],
+                    "azure": [
+
+                    ]
+                }
+            },
+            "disk": {
+                "write_iops": {
+                    "unit": "counts",
+                    "aws": [
+                        {
+                            "metric": "DiskWriteOps",
+                            "resource": [
+
+                            ]
+                        },
+                        {
+                            "metric": "EBSWriteOps",
+                            "resource": [
+
+                            ]
+                        }
+                    ],
+                    "google_cloud": [
+                        {
+                            "metric": "compute.googleapis.com/instance/disk/write_ops_count",
+                            "resource": [
+
+                            ]
+                        }
+                    ],
+                    "azure": [
+                        {
+                            "metric": "Data Disk Write Operations/Sec",
+                            "resource": [
+
+                            ]
+                        }
+                    ]
+                },
+                "write_throughput": {
+                    "unit": "bytes",
+                    "aws": [
+                        {
+                            "metric": "DiskWriteBytes",
+                            "resource": [
+
+                            ]
+                        },
+                        {
+                            "metric": "EBSWriteBytes",
+                            "resource": [
+
+                            ]
+                        }
+                    ],
+                    "google_cloud": [
+                        {
+                            "metric": "compute.googleapis.com/instance/disk/write_bytes_count",
+                            "resource": [
+
+                            ]
+                        }
+                    ],
+                    "azure": [
+                        {
+                            "metric": "Disk Write Bytes",
+                            "resource": [
+
+                            ]
+                        }
+                    ]
+                },
+                "read_iops": {
+                    "unit": "counts",
+                    "aws": [
+                        {
+                            "metric": "DiskReadOps",
+                            "resource": [
+
+                            ]
+                        },
+                        {
+                            "metric": "EBSReadOps",
+                            "resource": [
+
+                            ]
+                        }
+                    ],
+                    "google_cloud": [
+                        {
+                            "metric": "compute.googleapis.com/instance/disk/read_ops_count",
+                            "resource": [
+
+                            ]
+                        }
+                    ],
+                    "azure": [
+                        {
+                            "metric": "Disk Read Operations/Sec",
+                            "resource": [
+
+                            ]
+                        }
+                    ]
+                },
+                "read_throughput": {
+                    "unit": "bytes",
+                    "aws": [
+                        {
+                            "metric": "DiskReadBytes",
+                            "resource": [
+
+                            ]
+                        },
+                        {
+                            "metric": "EBSReadBytes",
+                            "resource": [
+
+                            ]
+                        }
+                    ],
+                    "google_cloud": [
+                        {
+                            "metric": "compute.googleapis.com/instance/disk/read_bytes_count",
+                            "resource": [
+
+                            ]
+                        }
+                    ],
+                    "azure": [
+                        {
+                            "metric": "Disk Read Bytes",
+                            "resource": [
+
+                            ]
+                        }
+                    ]
+                }
+            },
+            "network": {
+                "received_throughput": {
+                    "unit": "bytes",
+                    "aws": [
+                        {
+                            "metric": "NetworkPacketsIn",
+                            "resource": [
+
+                            ]
+                        }
+                    ],
+                    "google_cloud": [
+                        {
+                            "metric": "compute.googleapis.com/instance/network/received_bytes_count",
+                            "resource": [
+
+                            ]
+                        }
+                    ],
+                    "azure": [
+                        {
+                            "metric": "Network In",
+                            "resource": [
+
+                            ]
+                        }
+                    ]
+                },
+                "received_pps": {
+                    "unit": "counts",
+                    "aws": [
+                        {
+                            "metric": "NetworkIn",
+                            "resource": [
+
+                            ]
+                        }
+                    ],
+                    "google_cloud": [
+                        {
+                            "metric": "compute.googleapis.com/instance/network/received_packets_count",
+                            "resource": [
+
+                            ]
+                        }
+                    ],
+                    "azure": [
+                        {
+                            "metric": "Inbound Flows",
+                            "resource": [
+
+                            ]
+                        }
+                    ]
+                },
+                "sent_throughput": {
+                    "unit": "bytes",
+                    "aws": [
+                        {
+                            "metric": "NetworkPacketsOut",
+                            "resource": [
+
+                            ]
+                        }
+                    ],
+                    "google_cloud": [
+                        {
+                            "metric": "compute.googleapis.com/instance/network/sent_bytes_count",
+                            "resource": [
+
+                            ]
+                        }
+                    ],
+                    "azure": [
+                        {
+                            "metric": "Network Out",
+                            "resource": [
+
+                            ]
+                        }
+                    ]
+                },
+                "sent_pps": {
+                    "unit": "counts",
+                    "aws": [
+                        {
+                            "metric": "NetworkOut",
+                            "resource": [
+                            ]
+                        }
+                    ],
+                    "google_cloud": [
+                        {
+                            "metric": "compute.googleapis.com/instance/network/sent_packets_count",
+                            "resource": [
+                            ]
+                        }
+                    ],
+                    "azure": [
+                        {
+                            "metric": "Outbound Flows",
+                            "resource": [
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
