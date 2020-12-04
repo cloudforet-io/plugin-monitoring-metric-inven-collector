@@ -48,7 +48,6 @@ class CollectorService(BaseService):
     @transaction
     @check_required(['options', 'secret_data', 'filter'])
     def list_resources(self, params):
-        # thread 필요?
         """ Get quick list of resources
         Args:
             params:

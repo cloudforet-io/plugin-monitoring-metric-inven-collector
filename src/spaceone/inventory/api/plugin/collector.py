@@ -32,7 +32,7 @@ class Collector(BaseAPI, collector_pb2_grpc.CollectorServicer):
         with collector_svc:
             try:
                 for resource in collector_svc.list_resources(params):
-                    print(f'params : {params}')
+                    #print(f'params : {params}')
                     res = {
                         'state': (resource['state']),
                         'message': '',

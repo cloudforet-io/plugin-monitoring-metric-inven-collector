@@ -4,6 +4,8 @@ import logging
 from spaceone.core.manager import BaseManager
 from spaceone.inventory.error import *
 from spaceone.core.transaction import Transaction
+from spaceone.core.auth.jwt import JWTAuthenticator, JWTUtil
+from spaceone.core.transaction import Transaction, ERROR_AUTHENTICATE_FAILURE
 from spaceone.inventory.connector.inventory_connector import InventoryConnector
 
 _LOGGER = logging.getLogger(__name__)
@@ -19,7 +21,8 @@ class InventoryManager(BaseManager):
         super().__init__(**kwargs)
 
     def set_connector(self):
-        transaction, inventory_config, domain_id = self._get_connect_config(self.params.get('secret_data', {}))
+        transaction, inventory_config, domain_id = self._get_sample_connect_config(self.params.get('secret_data', {}))
+        #transaction, inventory_config, domain_id = self.get_connect_config(self.params.get('secret_data', {}))
         self.connector = InventoryConnector(transaction, inventory_config)
         self.domain_id = domain_id
 
@@ -38,18 +41,56 @@ class InventoryManager(BaseManager):
 
         return cloud_service_resources
 
+    def get_connect_config(self, config_data):
+        api_key = config_data.get('api_key', None)
+        transaction = Transaction({'token': api_key})
+        inventory_config = self._get_matched_end_point('inventory', config_data.get('endpoint'))
+        domain_id = self._extract_domain_id(api_key)
+        return transaction, inventory_config, domain_id
+
     @staticmethod
-    def _get_connect_config(config_data):
+    def _get_matched_end_point(flag, endpoints):
+        endpoint_vo = None
+        for end_point in endpoints.get('results', []):
+            if end_point.get('service') == flag:
+                ep = end_point.get('endpoint')
+                endpoint_vo = {
+                    "endpoint": {
+                        ep[ep.rfind('/') + 1:]: ep[0:ep.rfind('/')]
+                    }
+                }
+                break
+        return endpoint_vo
+
+    @staticmethod
+    def _get_sample_connect_config(config_data):
         transaction = Transaction({
+            # 'token': config_data.get('api_key', None),
             'token': config_data.get('access_token', None)
         })
+
         inventory_config = config_data.get('InventoryConnector', None)
         return transaction, inventory_config, config_data.get('domain_id')
 
     @staticmethod
+    def _extract_domain_id(token):
+        try:
+            decoded = JWTUtil.unverified_decode(token)
+        except Exception:
+            _LOGGER.debug(f'[ERROR_AUTHENTICATE_FAILURE] token: {token}')
+            raise ERROR_AUTHENTICATE_FAILURE(message='Cannot decode token.')
+
+        domain_id = decoded.get('did')
+
+        if domain_id is None:
+            raise ERROR_AUTHENTICATE_FAILURE(message='Empty domain_id provided.')
+
+        return domain_id
+
+    @staticmethod
     def _get_server_query():
         return {
-            #'page': {'limit': 2},
+            # 'page': {'limit': 2},
             "only": [
                 "server_id",
                 "region_code",
@@ -88,7 +129,7 @@ class InventoryManager(BaseManager):
                 "k": 'provider',
                 "v": provider,
                 "o": "eq"
-                },
+            },
                 {
                     "k": 'cloud_service_group',
                     "v": filter_contents.get('cloud_service_group'),

@@ -82,6 +82,7 @@ class CollectorManager(BaseManager):
         return data_source[0] if len(data_source) > 0 else None
 
     def set_managers(self, params):
+        #
         inventory_manager: InventoryManager = InventoryManager(params)
         inventory_manager.set_connector()
         monitoring_manager: MonitoringManager = MonitoringManager(params)
@@ -93,6 +94,9 @@ class CollectorManager(BaseManager):
         server_monitoring_vo = {}
         metric_info = metric_info_vo.get('json')
         metric_keys = metric_info_vo.get('key')
+
+
+        server_ids_vo = {'aws': ['server-67371e41069f']}
         for provider in providers:
             data_source = self.get_data_source_info_by_provider(provider)
             server_monitoring_vo.update({provider: {}})
