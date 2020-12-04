@@ -46,8 +46,16 @@ class MonitoringConnector(BaseConnector):
 
     def metric_get_data(self, param, domain_id):
         param.update({'domain_id': domain_id})
-        response = self.client.Metric.get_data(param, metadata=self.transaction.get_connection_meta())
-        return self._change_message(response)
+
+        try:
+            response = self.client.Metric.get_data(param, metadata=self.transaction.get_connection_meta())
+            return self._change_message(response)
+
+        except Exception as e:
+            print(f'[ERROR: {e}]')
+            raise e
+
+
 
     @staticmethod
     def _change_message(message):

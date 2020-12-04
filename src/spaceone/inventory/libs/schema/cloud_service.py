@@ -4,7 +4,7 @@ from .base import BaseResponse, ReferenceModel
 
 
 class CloudServiceResource(Model):
-    provider = StringType(default="google_cloud")
+    provider = StringType(serialize_when_none=False)
     cloud_service_type = StringType(serialize_when_none=False)
     cloud_service_group = StringType(serialize_when_none=False)
     data = PolyModelType(Model, default=lambda: {})

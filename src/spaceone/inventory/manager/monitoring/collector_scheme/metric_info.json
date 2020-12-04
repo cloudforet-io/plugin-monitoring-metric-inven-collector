@@ -5,15 +5,14 @@
             "aws":[
                 {
                     "metric":"CPUUtilization",
-                    "resource":[
+                    "resource_type": "inventory.Server"
 
-                    ]
+
                 }
             ],
             "google_cloud":[
                 {
                     "metric":"compute.googleapis.com/instance/cpu/utilization",
-                    "unit":"1",
                     "resource":[
 
                     ]
@@ -21,7 +20,7 @@
             ],
             "azure":[
                 {
-                    "metric":"",
+                    "metric":"Percentage CPU",
                     "resource":[
 
                     ]
@@ -82,8 +81,7 @@
             "unit":"counts",
             "aws":[
                 {
-                    "metric":"EBSWriteOps",
-                    "unit":"1",
+                    "metric":"DiskWriteOps",
                     "resource":[
 
                     ]
@@ -91,23 +89,26 @@
             ],
             "google_cloud":[
                 {
-                    "metric":"EBSWriteOps",
-                    "unit":"1",
+                    "metric":"compute.googleapis.com/instance/disk/write_ops_count",
                     "resource":[
 
                     ]
                 }
             ],
             "azure":[
+                {
+                    "metric":"Data Disk Write Operations/Sec",
+                    "resource":[
 
+                    ]
+                }
             ]
         },
         "write_throughput":{
             "unit":"bytes",
             "aws":[
                 {
-                    "metric":"EBSWriteBytes",
-                    "unit":"1",
+                    "metric":"DiskWriteBytes",
                     "resource":[
 
                     ]
@@ -115,23 +116,26 @@
             ],
             "google_cloud":[
                 {
-                    "metric":"EBSWriteOps",
-                    "unit":"1",
+                    "metric":"compute.googleapis.com/instance/disk/write_bytes_count",
                     "resource":[
 
                     ]
                 }
             ],
             "azure":[
+                {
+                    "metric":"Disk Write Bytes",
+                    "resource":[
 
+                    ]
+                }
             ]
         },
         "read_iops":{
             "unit":"counts",
             "aws":[
                 {
-                    "metric":"EBSReadOps",
-                    "unit":"1",
+                    "metric":"DiskReadOps",
                     "resource":[
 
                     ]
@@ -139,39 +143,39 @@
             ],
             "google_cloud":[
                 {
-                    "metric":"EBSWriteOps",
-                    "unit":"1",
+                    "metric":"compute.googleapis.com/instance/disk/read_ops_count",
                     "resource":[
 
                     ]
                 }
             ],
             "azure":[
+                {
+                    "metric":"Disk Read Operations/Sec",
+                    "resource":[
 
+                    ]
+                }
             ]
         },
         "read_throughput":{
             "unit":"bytes",
-            "aws":[
-                {
-                    "metric":"EBSReadBytes",
-                    "unit":"1",
-                    "resource":[
-
-                    ]
-                }
+            "aws":[{
+                    "metric":"DiskReadBytes",
+                    "resource":[]
+                    }
             ],
             "google_cloud":[
                 {
-                    "metric":"EBSWriteOps",
-                    "unit":"1",
-                    "resource":[
-
-                    ]
+                    "metric":"compute.googleapis.com/instance/disk/read_bytes_count",
+                    "resource":[]
                 }
             ],
             "azure":[
-
+                {
+                    "metric":"Disk Read Bytes",
+                    "resource":[]
+                }
             ]
         }
     },
@@ -195,7 +199,12 @@
                 }
             ],
             "azure":[
+                {
+                    "metric":"Network In",
+                    "resource":[
 
+                    ]
+                }
             ]
         },
         "received_pps":{
@@ -217,7 +226,12 @@
                 }
             ],
             "azure":[
+                {
+                    "metric":"Inbound Flows",
+                    "resource":[
 
+                    ]
+                }
             ]
         },
         "sent_throughput":{
@@ -239,7 +253,12 @@
                 }
             ],
             "azure":[
+                {
+                    "metric":"Network Out",
+                    "resource":[
 
+                    ]
+                }
             ]
         },
         "sent_pps":{
@@ -261,7 +280,12 @@
                 }
             ],
             "azure":[
+                {
+                    "metric":"Outbound Flows",
+                    "resource":[
 
+                    ]
+                }
             ]
         }
     }
