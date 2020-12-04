@@ -21,9 +21,9 @@ with open('VERSION', 'r') as f:
     f.close()
 
 setup(
-    name='plugin-google-cloud-power-state',
+    name='plugin-monitoring-metric-collector',
     version=VERSION,
-    description='Google cloud service inventory collector',
+    description='Collector monitoring data per providers',
     long_description='',
     url='https://www.spaceone.dev/',
     author='MEGAZONE SpaceONE Team',
