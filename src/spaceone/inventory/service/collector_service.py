@@ -2,7 +2,6 @@ import time
 import logging
 import concurrent.futures
 from spaceone.core.service import *
-from spaceone.inventory.libs.manager import GoogleCloudManager
 from spaceone.inventory.manager.collector_manager import CollectorManager
 
 _LOGGER = logging.getLogger(__name__)
@@ -39,9 +38,6 @@ class CollectorService(BaseService):
         """
         options = params['options']
         secret_data = params.get('secret_data', {})
-        if secret_data != {}:
-            google_manager = GoogleCloudManager()
-            active = google_manager.verify({}, secret_data)
 
         return {}
 
