@@ -59,6 +59,7 @@ class CollectorService(BaseService):
         """
 
         start_time = time.time()
+        print("[ EXECUTOR START ]")
         for resource in self.collector_manager.list_resources(params):
             yield resource.to_primitive()
 

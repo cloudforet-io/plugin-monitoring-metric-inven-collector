@@ -90,7 +90,7 @@ class InventoryManager(BaseManager):
     @staticmethod
     def _get_server_query():
         return {
-            'page': {'limit': 1},
+            #'page': {'limit': 1},
             "only": [
                 "server_id",
                 "region_code",

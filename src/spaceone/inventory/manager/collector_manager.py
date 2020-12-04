@@ -124,12 +124,12 @@ class CollectorManager(BaseManager):
 
                                 metric_data[0] = self.get_metric_data(param)
                                 param.update({'stat_flag': 'avg'})
+                                metric_data[1] = self.get_metric_data(param)
 
                                 # print(provider_metric.get('metric'))
                                 # pprint(metric_data)
                                 # print()
 
-                                metric_data[1] = self.get_metric_data(param)
                                 if metric_data[0].get('labels') != [] and metric_data[1].get('labels') != []:
                                     server_monitoring_vo[provider][dict_key[0]].update({dict_key[1]: self._get_collect_data_per_state(metric_data)})
 
