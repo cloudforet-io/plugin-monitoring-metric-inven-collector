@@ -95,8 +95,6 @@ class CollectorManager(BaseManager):
         metric_info = metric_info_vo.get('json')
         metric_keys = metric_info_vo.get('key')
 
-
-        server_ids_vo = {'aws': ['server-67371e41069f']}
         for provider in providers:
             data_source = self.get_data_source_info_by_provider(provider)
             server_monitoring_vo.update({provider: {}})
@@ -115,6 +113,7 @@ class CollectorManager(BaseManager):
                         for provider_metric in metric_info[dict_key[0]][dict_key[1]][provider]:
                             metric_data = [{}, {}]
                             if provider_metric.get('metric') != '':
+
                                 param = self._get_metric_param(provider,
                                                                data_source_id,
                                                                'inventory.Server',
@@ -125,8 +124,14 @@ class CollectorManager(BaseManager):
 
                                 metric_data[0] = self.get_metric_data(param)
                                 param.update({'stat_flag': 'avg'})
+
+                                # print(provider_metric.get('metric'))
+                                # pprint(metric_data)
+                                # print()
+
                                 metric_data[1] = self.get_metric_data(param)
-                                server_monitoring_vo[provider][dict_key[0]].update({dict_key[1]: self._get_collect_data_per_state(metric_data)})
+                                if metric_data[0].get('labels') != [] and metric_data[1].get('labels') != []:
+                                    server_monitoring_vo[provider][dict_key[0]].update({dict_key[1]: self._get_collect_data_per_state(metric_data)})
 
         return server_monitoring_vo
 

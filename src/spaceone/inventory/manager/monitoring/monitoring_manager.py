@@ -20,8 +20,8 @@ class MonitoringManager(BaseManager):
         super().__init__(**kwargs)
 
     def set_connector(self):
-        transaction, inventory_config, domain_id = self._get_sample_connect_config(self.params.get('secret_data', {}))
-        # transaction, inventory_config, domain_id = self.get_connect_config(self.params.get('secret_data', {}))
+        #transaction, inventory_config, domain_id = self._get_sample_connect_config(self.params.get('secret_data', {}))
+        transaction, inventory_config, domain_id = self.get_connect_config(self.params.get('secret_data', {}))
         self.connector = MonitoringConnector(transaction, inventory_config)
         self.domain_id = domain_id
 
@@ -68,7 +68,7 @@ class MonitoringManager(BaseManager):
     def get_connect_config(self, config_data):
         api_key = config_data.get('api_key', None)
         transaction = Transaction({'token': api_key})
-        inventory_config = self._get_matched_end_point('inventory', config_data.get('endpoint'))
+        inventory_config = self._get_matched_end_point('monitoring', config_data.get('endpoint'))
         domain_id = self._extract_domain_id(api_key)
         return transaction, inventory_config, domain_id
 
