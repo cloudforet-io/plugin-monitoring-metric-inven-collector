@@ -38,11 +38,17 @@ class MonitoringManager(BaseManager):
         metric_list = metrics.get('metrics', [])
         return metric_list
 
-    def get_metric_data(self, data_source_id, resource_type, resources, metric, start, end, period, stat):
+    def get_metric_data(self, data_source_id, resource_type, resource, metric, start, end, period, stat):
+        metric_resources = []
+        if isinstance(resource, str):
+            metric_resources.append(resource)
+        else:
+            metric_resources = resource
+
         param = {
             'data_source_id': data_source_id,
             'resource_type': resource_type,
-            'resources': [resources],
+            'resources': metric_resources,
             'metric': metric,
             'start': start,
             'end': end,

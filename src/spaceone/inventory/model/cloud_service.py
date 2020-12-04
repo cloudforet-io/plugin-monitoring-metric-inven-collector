@@ -1,15 +1,20 @@
 import logging
 
 from schematics import Model
-from schematics.types import ModelType, StringType, ListType, DictType
+from schematics.types import ModelType, StringType, ListType, DictType, UnionType, IntType, FloatType
 from spaceone.inventory.libs.schema.cloud_service import CloudServiceResource, CloudServiceResponse
 
 _LOGGER = logging.getLogger(__name__)
 
 
+class MetricDataModel(Model):
+    labels = ListType(DictType(IntType), required=True)
+    values = ListType(UnionType((FloatType, IntType)), required=True)
+
+
 class CollectType(Model):
-    avg = StringType()
-    max = StringType()
+    avg = ModelType(MetricDataModel, serialize_when_none=False)
+    max = ModelType(MetricDataModel, serialize_when_none=False)
 
 
 class CPUMonitoring(Model):

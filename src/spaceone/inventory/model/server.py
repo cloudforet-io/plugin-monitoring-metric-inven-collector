@@ -1,7 +1,7 @@
 import logging
 
 from schematics import Model
-from schematics.types import ModelType, StringType, ListType, DictType
+from schematics.types import ModelType, StringType, ListType, DictType, UnionType, IntType, FloatType
 from spaceone.inventory.libs.schema.cloud_service import CloudServiceResource, CloudServiceResponse
 
 _LOGGER = logging.getLogger(__name__)
@@ -10,34 +10,38 @@ _LOGGER = logging.getLogger(__name__)
 ComputeEngine Instance
 '''
 
+class MetricDataModel(Model):
+    labels = ListType(DictType(IntType), required=True)
+    values = ListType(UnionType((FloatType, IntType)), required=True)
+
 
 class CollectType(Model):
-    avg = StringType()
-    max = StringType()
+    avg = ModelType(MetricDataModel, serialize_when_none=False)
+    max = ModelType(MetricDataModel, serialize_when_none=False)
 
 
 class CPUMonitoring(Model):
-    utilization = ModelType(CollectType)
+    utilization = ModelType(CollectType, serialize_when_none=False)
 
 
 class MemoryMonitoring(Model):
-    usage = ModelType(CollectType)
-    total = ModelType(CollectType)
-    used = ModelType(CollectType)
+    usage = ModelType(CollectType, serialize_when_none=False)
+    total = ModelType(CollectType, serialize_when_none=False)
+    used = ModelType(CollectType, serialize_when_none=False)
 
 
 class DiskMonitoring(Model):
-    write_iops = ModelType(CollectType)
-    write_throughput = ModelType(CollectType)
-    read_iops = ModelType(CollectType)
-    read_throughput = ModelType(CollectType)
+    write_iops = ModelType(CollectType, serialize_when_none=False)
+    write_throughput = ModelType(CollectType, serialize_when_none=False)
+    read_iops = ModelType(CollectType, serialize_when_none=False)
+    read_throughput = ModelType(CollectType, serialize_when_none=False)
 
 
 class NetworkCPUMonitoring(Model):
-    received_throughput = ModelType(CollectType)
-    received_pps = ModelType(CollectType)
-    sent_throughput = ModelType(CollectType)
-    sent_pps = ModelType(CollectType)
+    received_throughput = ModelType(CollectType, serialize_when_none=False)
+    received_pps = ModelType(CollectType, serialize_when_none=False)
+    sent_throughput = ModelType(CollectType, serialize_when_none=False)
+    sent_pps = ModelType(CollectType, serialize_when_none=False)
 
 
 class Monitoring(Model):
@@ -49,7 +53,6 @@ class Monitoring(Model):
 
 class Server(Model):
     monitoring = ModelType(Monitoring, default={})
-
     def reference(self, reference_id):
         return {
             "resource_id": reference_id,
@@ -57,6 +60,7 @@ class Server(Model):
 
 
 class ServerInstanceResource(CloudServiceResource):
+    provider = StringType(default='aws')
     cloud_service_group = StringType(default='ComputeEngine')
     cloud_service_type = StringType(default='Instance')
     data = ModelType(Server)

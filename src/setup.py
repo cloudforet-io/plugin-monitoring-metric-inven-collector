@@ -35,9 +35,8 @@ setup(
         'spaceone-api',
         'spaceone-tester',
         'schematics',
-        'moto',
-        'google-auth',
-        'google-api-python-client'
+        'numpy',
+        'moto'
     ],
     zip_safe=False,
 )

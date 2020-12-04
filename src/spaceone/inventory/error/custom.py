@@ -1,5 +1,4 @@
-from spaceone.core.error import ERROR_BASE
-
+from spaceone.core.error import *
 
 class ERROR_REPOSITORY_BACKEND(ERROR_BASE):
     status_code = 'INTERNAL'
@@ -18,3 +17,6 @@ class ERROR_NOT_INITIALIZED_EXCEPTION(ERROR_BASE):
 
 class ERROR_ATHENTICATION_VERIFY(ERROR_BASE):
     message = 'Connection failed. Please check your authentication information.'
+
+class ERROR_NOT_SUPPORT_STAT(ERROR_INVALID_ARGUMENT):
+    _message = 'collector stat is invalid. (supported_stat = {supported_stat})'

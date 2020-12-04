@@ -4,7 +4,7 @@ import json
 
 from spaceone.core.unittest.runner import RichTestRunner
 from spaceone.tester import TestCase, print_json
-
+from pprint import pprint
 CONFIG_CREDENTIALS_PATH = os.environ.get('CONFIG_PATH', None)
 
 if CONFIG_CREDENTIALS_PATH is None:

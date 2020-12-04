@@ -29,11 +29,6 @@ class InventoryManager(BaseManager):
         server_list = servers.get('results', [])
         return server_list
 
-    providers = {'aws': [],
-                 'google_cloud': [],
-                 'azure': []
-                 }
-
     def list_cloud_services(self):
         cloud_service_resources = []
 
@@ -54,6 +49,7 @@ class InventoryManager(BaseManager):
     @staticmethod
     def _get_server_query():
         return {
+            #'page': {'limit': 2},
             "only": [
                 "server_id",
                 "region_code",
@@ -61,6 +57,8 @@ class InventoryManager(BaseManager):
                 "collection_info.secrets",
                 "reference.resource_id",
                 "provider",
+                "cloud_service_group",
+                "cloud_service_type",
                 "data.cloudwatch",
                 "data.stackdriver"
             ]
