@@ -2,8 +2,6 @@ __all__ = ['MonitoringManager']
 
 import logging
 from spaceone.core.manager import BaseManager
-from spaceone.inventory.error import *
-from spaceone.core.transaction import Transaction
 from spaceone.core.auth.jwt import JWTAuthenticator, JWTUtil
 from spaceone.core.transaction import Transaction, ERROR_AUTHENTICATE_FAILURE
 from spaceone.inventory.connector.monitoring_connector import MonitoringConnector

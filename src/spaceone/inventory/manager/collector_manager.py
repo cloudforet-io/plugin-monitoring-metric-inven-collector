@@ -10,6 +10,8 @@ from datetime import datetime, timedelta
 from spaceone.inventory.error.custom import *
 from spaceone.inventory.manager.monitoring.inventory_manager import InventoryManager
 from spaceone.inventory.manager.monitoring.monitoring_manager import MonitoringManager
+from spaceone.inventory.manager.monitoring.identity_manager import IdentityManager
+
 from spaceone.inventory.model.server import *
 from pprint import pprint
 
@@ -18,12 +20,14 @@ BASE_DIR = path.dirname(path.abspath(__file__))
 JSON_DIR = path.join(BASE_DIR, 'monitoring/collector_scheme')
 COLLECTIVE_STATE = ['max', 'avg']
 
+
 class CollectorManager(BaseManager):
 
     def __init__(self, transaction):
         self.secret = None  # secret info for update meta
         self.inventory_manager = None
         self.monitoring_manager = None
+        self.identity_manager = None
         self.data_source_info = None
         super().__init__(transaction)
 
@@ -43,29 +47,37 @@ class CollectorManager(BaseManager):
         metric_info = self.get_metric_info()
 
         self.set_managers(params)
-        self.get_data_source()
+        # self.get_data_source()
 
         end = datetime.utcnow()
         start = end - timedelta(days=interval_options)
 
         try:
-            servers = self.inventory_manager.list_servers()
-            providers, servers_vo_provider = self._get_metric_ids_per_provider(servers)
-            monitoring_data = self.get_servers_metric_data(metric_info,
-                                                           providers,
-                                                           servers_vo_provider,
-                                                           start,
-                                                           end)
-
-            servers_vos = self._set_metric_data_to_server(metric_info, servers, monitoring_data)
-
-            resources.extend(servers_vos)
+            pass
+            # servers = self.inventory_manager.list_servers()
+            # providers, servers_vo_provider = self._get_metric_ids_per_provider(servers)
+            # monitoring_data = self.get_servers_metric_data(metric_info,
+            #                                                providers,
+            #                                                servers_vo_provider,
+            #                                                start,
+            #                                                end)
+            #
+            # servers_vos = self._set_metric_data_to_server(metric_info, servers, monitoring_data)
+            #
+            # resources.extend(servers_vos)
 
         except Exception as e:
             print(f'[ERROR: {e}]')
             raise e
 
         return resources
+
+    def get_end_point_list(self, params):
+        identity_manager: IdentityManager = IdentityManager(params)
+        identity_manager.set_connector()
+        self.identity_manager = identity_manager
+
+        return identity_manager.list_endpoints()
 
     def get_data_source(self):
         if not self.data_source_info:
@@ -82,13 +94,17 @@ class CollectorManager(BaseManager):
         return data_source[0] if len(data_source) > 0 else None
 
     def set_managers(self, params):
-        #
-        inventory_manager: InventoryManager = InventoryManager(params)
-        inventory_manager.set_connector()
-        monitoring_manager: MonitoringManager = MonitoringManager(params)
-        monitoring_manager.set_connector()
-        self.inventory_manager = inventory_manager
-        self.monitoring_manager = monitoring_manager
+        identity_manager: IdentityManager = IdentityManager(params)
+        identity_manager.set_connector()
+        self.identity_manager = identity_manager
+        # inventory_manager: InventoryManager = InventoryManager(params)
+        # inventory_manager.set_connector()
+        # self.inventory_manager = inventory_manager
+        # monitoring_manager: MonitoringManager = MonitoringManager(params)
+        # monitoring_manager.set_connector()
+        # self.monitoring_manager = monitoring_manager
+
+
 
     def get_servers_metric_data(self, metric_info_vo, providers, server_ids_vo, start, end):
         server_monitoring_vo = {}

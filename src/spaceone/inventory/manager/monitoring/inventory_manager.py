@@ -19,7 +19,6 @@ class InventoryManager(BaseManager):
         super().__init__(**kwargs)
 
     def set_connector(self):
-        #transaction, inventory_config, domain_id = self._get_sample_connect_config(self.params.get('secret_data', {}))
         transaction, inventory_config, domain_id = self.get_connect_config(self.params.get('secret_data', {}))
         self.connector = InventoryConnector(transaction, inventory_config)
         self.domain_id = domain_id
