@@ -1,7 +1,6 @@
 import logging
 
 from google.protobuf.json_format import MessageToDict
-
 from spaceone.core.connector import BaseConnector
 from spaceone.core import pygrpc
 from spaceone.core.utils import parse_endpoint
