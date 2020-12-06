@@ -16,3 +16,4 @@ class ReferenceModel(Model):
     resource_id = StringType(required=False, serialize_when_none=False)
     external_link = StringType(required=False, serialize_when_none=False)
 
+

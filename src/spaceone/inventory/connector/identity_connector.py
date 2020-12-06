@@ -1,6 +1,7 @@
 import logging
 
 from google.protobuf.json_format import MessageToDict
+
 from spaceone.core.connector import BaseConnector
 from spaceone.core import pygrpc
 from spaceone.core.utils import parse_endpoint
@@ -30,20 +31,10 @@ class IdentityConnector(BaseConnector):
         if len(self.config['endpoint']) > 1:
             raise ERROR_CONNECTOR_CONFIGURATION(backend=self.__class__.__name__)
 
-    def get_project(self, project_id, domain_id):
-        response = self.client.Project.get({
-            'project_id': project_id,
+    def get_end_points(self, domain_id):
+        response = self.client.Endpoint.list({
             'domain_id': domain_id
         }, metadata=self.transaction.get_connection_meta())
-
-        return self._change_message(response)
-
-    def get_service_account(self, service_account_id, domain_id):
-        response = self.client.ServiceAccount.get({
-            'service_account_id': service_account_id,
-            'domain_id': domain_id
-        }, metadata=self.transaction.get_connection_meta())
-
         return self._change_message(response)
 
     @staticmethod

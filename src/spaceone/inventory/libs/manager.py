@@ -1,0 +1,181 @@
+__all__ = ['CollectorManager']
+
+import logging
+from spaceone.core.error import *
+from spaceone.core.manager import BaseManager
+from datetime import datetime, timedelta
+from spaceone.inventory.error.custom import *
+from spaceone.inventory.model.server import *
+from spaceone.inventory.libs.schema.base import ReferenceModel
+
+
+
+_LOGGER = logging.getLogger(__name__)
+COLLECTIVE_STATE = ['max', 'avg']
+
+
+class CollectorManager(BaseManager):
+    provider = None
+
+    def __init__(self, **kwargs):
+        super().__init__(transaction=None, config=None)
+        secret_data = kwargs.get('secret_data')
+        self.end = None
+        self.start = None
+
+        try:
+            self.inventory_manager = secret_data.get('inventory_manager')
+            self.monitoring_manager = secret_data.get('monitoring_manager')
+            self.domain_id = secret_data.get('domain_id')
+            self.data_source_info = secret_data.get('data_source_info')
+            self.set_time(1)
+
+        except Exception as e:
+            print()
+            raise ERROR_UNKNOWN(message=e)
+
+    def verify(self, secret_data, region_name):
+        """
+            Check connection
+        """
+        return ''
+
+    def collect_monitoring_data(self, params) -> list:
+        raise NotImplemented
+
+    def collect_resources(self, params) -> list:
+
+        return self.collect_monitoring_data(params)
+
+    def set_time(self, interval_options: int):
+        self.end = datetime.utcnow()
+        self.start = self.end - timedelta(days=interval_options)
+
+    def get_servers_metric_data(self, metric_info_vo, provider, server_ids, start, end):
+        server_monitoring_vo = {}
+        metric_info = metric_info_vo.get('json')
+        metric_keys = metric_info_vo.get('key')
+
+        data_source = self.get_data_source_info_by_provider(provider)
+
+        if data_source:
+            for collect_item in metric_keys:
+                dict_key = collect_item.split('.')
+
+                if dict_key[0] not in server_monitoring_vo:
+                    server_monitoring_vo.update({dict_key[0]: {}})
+
+                if provider in metric_info[dict_key[0]][dict_key[1]]:
+                    for provider_metric in metric_info[dict_key[0]][dict_key[1]][provider]:
+                        metric_data = [{}, {}]
+
+                        if provider_metric.get('metric') != '':
+                            param = self._get_metric_param(provider,
+                                                           data_source.get('data_source_id'),
+                                                           'inventory.Server',
+                                                           server_ids,
+                                                           provider_metric.get('metric'),
+                                                           start,
+                                                           end)
+
+                            metric_data[0] = self.get_metric_data(param)
+                            param.update({'stat_flag': 'avg'})
+                            metric_data[1] = self.get_metric_data(param)
+
+                            if metric_data[0].get('labels') != [] and metric_data[1].get('labels') != []:
+                                server_monitoring_vo[dict_key[0]].update(
+                                    {dict_key[1]: self._get_collect_data_per_state(metric_data)})
+
+        return server_monitoring_vo
+
+
+
+    def get_metric_data(self, params):
+        stat_flag = 'MAX'
+
+        # Default: 86400
+        # Sample: 21600
+
+        stat_interval = params.get('stat_interval') if params.get('stat_interval') is not None else 86400
+
+        if params.get('stat_flag') == 'avg':
+            stat_flag = 'AVERAGE' if params.get('provider') == 'aws' else 'MEAN'
+
+        return self.monitoring_manager.get_metric_data(params.get('data_source_id'),
+                                                       params.get('source_type'),
+                                                       params.get('server_ids'),
+                                                       params.get('metric'),
+                                                       params.get('start'),
+                                                       params.get('end'),
+                                                       stat_interval,
+                                                       stat_flag)
+
+    def get_data_source_info_by_provider(self, provider):
+        data_source = self.data_source_info.get(provider, [])
+        return data_source[0] if len(data_source) > 0 else None
+
+    @staticmethod
+    def _get_metric_param(provider, data_source_id, source_type, server_ids, metric, start, end):
+        return {
+            'provider': provider,
+            'data_source_id': data_source_id,
+            'source_type': source_type,
+            'server_ids': server_ids,
+            'metric': metric,
+            'start': start,
+            'end': end,
+        }
+
+    @staticmethod
+    def _get_collect_data_per_state(metric_data):
+        collected_data_map = {}
+        if len(metric_data) != len(metric_data):
+            raise ERROR_NOT_SUPPORT_STAT(supported_stat=' | '.join(COLLECTIVE_STATE))
+
+        for idx, state in enumerate(COLLECTIVE_STATE):
+            collected_data_map.update({
+                state: metric_data[idx]
+            })
+        return collected_data_map
+
+    @staticmethod
+    def _set_metric_data_to_server(metric_info_vo, servers, collected_data):
+        return_list = []
+        metric_keys = metric_info_vo.get('key')
+
+        for server in servers:
+            server_vo = {}
+
+            provider = server.get('provider')
+            server_id = server.get('server_id')
+            for metric_key in metric_keys:
+                key = metric_key.split('.')
+
+                if key[0] not in server_vo and key[0] in collected_data:
+                    server_vo.update({key[0]: {}})
+
+                for state in COLLECTIVE_STATE:
+                    if key[1] not in server_vo[key[0]] and key[1] in collected_data[key[0]]:
+                        server_vo[key[0]].update({key[1]: {}})
+
+                    if key[0] in collected_data and key[1] in collected_data[key[0]]:
+                        resources = collected_data[key[0]][key[1]]
+                        if state in resources:
+                            server_vo[key[0]][key[1]].update({state: {
+                                'labels': resources[state].get('labels', []),
+                                'values': resources[state].get('resource_values', {}).get(server_id, [])
+                            }})
+
+            monitoring_data = Server({'monitoring': Monitoring(server_vo, strict=False)}, strict=False)
+
+            compute_vm_resource = ServerInstanceResource({
+                'provider': provider,
+                'cloud_service_group': server.get('cloud_service_group'),
+                'cloud_service_type': server.get('cloud_service_type'),
+                'data': monitoring_data,
+                'reference': ReferenceModel(monitoring_data.reference(server.get('reference').get('resource_id')))
+            })
+
+            return_list.append(ServerInstanceResponse({'resource': compute_vm_resource}))
+
+        return return_list
