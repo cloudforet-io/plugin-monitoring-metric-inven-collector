@@ -1,8 +1,9 @@
 __all__ = ['InventoryManager']
 
 import logging
+from spaceone.core.error import *
 from spaceone.core.manager import BaseManager
-from spaceone.core.auth.jwt import JWTAuthenticator, JWTUtil
+from spaceone.core.auth.jwt import JWTUtil
 from spaceone.core.transaction import Transaction, ERROR_AUTHENTICATE_FAILURE
 from spaceone.inventory.connector.inventory_connector import InventoryConnector
 
@@ -12,19 +13,21 @@ CLOUD_PROVIDER = ['aws', 'google_cloud', 'azure']
 
 class InventoryManager(BaseManager):
 
-    def __init__(self, params, **kwargs):
-        self.params = params
-        self.domain_id = None
-        self.connector = None
-        super().__init__(**kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(transaction=None, config=None)
+        secret_data = kwargs.get('secret_data')
 
-    def set_connector(self):
-        transaction, inventory_config, domain_id = self.get_connect_config(self.params.get('secret_data', {}))
-        self.connector = InventoryConnector(transaction, inventory_config)
-        self.domain_id = domain_id
+        try:
+            transaction = self._get_transaction(secret_data)
+            self.connector = InventoryConnector(transaction, self._get_config(secret_data, 'inventory'))
+            self.domain_id = secret_data.get('domain_id')
 
-    def list_servers(self):
-        query = self._get_server_query()
+        except Exception as e:
+            print()
+            raise ERROR_UNKNOWN(message=e)
+
+    def list_servers(self, provider):
+        query = self._get_server_query(provider)
         servers = self.connector.list_servers(query, self.domain_id)
         server_list = servers.get('results', [])
         return server_list
@@ -38,69 +41,48 @@ class InventoryManager(BaseManager):
 
         return cloud_service_resources
 
-    def get_connect_config(self, config_data):
-        api_key = config_data.get('api_key', None)
-        transaction = Transaction({'token': api_key})
-        inventory_config = self._get_matched_end_point('inventory', config_data.get('endpoint'))
-        domain_id = self._extract_domain_id(api_key)
-        return transaction, inventory_config, domain_id
+    @staticmethod
+    def _get_transaction(secret_data):
+        return Transaction({'token': secret_data.get('api_key', None)})
 
     @staticmethod
-    def _get_matched_end_point(flag, endpoints):
-        endpoint_vo = None
-        for end_point in endpoints.get('results', []):
-            if end_point.get('service') == flag:
+    def _get_config(secret_data, service_name):
+        end_point_list = secret_data.get('end_point_list', [])
+        for end_point in end_point_list:
+            if end_point.get('service') == service_name:
                 ep = end_point.get('endpoint')
-                endpoint_vo = {
+                return {
                     "endpoint": {
                         ep[ep.rfind('/') + 1:]: ep[0:ep.rfind('/')]
                     }
                 }
-                break
-        return endpoint_vo
+
 
     @staticmethod
-    def _get_sample_connect_config(config_data):
-        transaction = Transaction({
-            # 'token': config_data.get('api_key', None),
-            'token': config_data.get('access_token', None)
-        })
+    def _get_server_query(provider):
 
-        inventory_config = config_data.get('InventoryConnector', None)
-        return transaction, inventory_config, config_data.get('domain_id')
-
-    @staticmethod
-    def _extract_domain_id(token):
-        try:
-            decoded = JWTUtil.unverified_decode(token)
-        except Exception:
-            _LOGGER.debug(f'[ERROR_AUTHENTICATE_FAILURE] token: {token}')
-            raise ERROR_AUTHENTICATE_FAILURE(message='Cannot decode token.')
-
-        domain_id = decoded.get('did')
-
-        if domain_id is None:
-            raise ERROR_AUTHENTICATE_FAILURE(message='Empty domain_id provided.')
-
-        return domain_id
-
-    @staticmethod
-    def _get_server_query():
-        return {
-            #'page': {'limit': 1},
+        query = {
+            # 'page': {'limit': 1},
             "only": [
                 "server_id",
-                "region_code",
-                "name",
-                "collection_info.secrets",
-                "reference.resource_id",
                 "provider",
+                "data.compute.account",
+                "reference.resource_id",
                 "cloud_service_group",
-                "cloud_service_type",
-                "data.cloudwatch",
-                "data.stackdriver"
+                "cloud_service_type"
             ]
         }
+
+        if provider:
+            query.update({
+                "filter": [{
+                    "k": 'provider',
+                    "v": provider,
+                    "o": "eq"
+                }]
+            })
+
+        return query
 
     @staticmethod
     def _get_cloud_svc_query(provider):

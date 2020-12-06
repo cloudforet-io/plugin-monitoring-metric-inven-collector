@@ -31,8 +31,10 @@ class IdentityConnector(BaseConnector):
         if len(self.config['endpoint']) > 1:
             raise ERROR_CONNECTOR_CONFIGURATION(backend=self.__class__.__name__)
 
-    def get_end_points(self):
-        response = self.client.Endpoint.list({}, metadata=self.transaction.get_connection_meta())
+    def get_end_points(self, domain_id):
+        response = self.client.Endpoint.list({
+            'domain_id': domain_id
+        }, metadata=self.transaction.get_connection_meta())
         return self._change_message(response)
 
     @staticmethod

@@ -1,8 +1,9 @@
 __all__ = ['MonitoringManager']
 
 import logging
+from spaceone.core.error import *
 from spaceone.core.manager import BaseManager
-from spaceone.core.auth.jwt import JWTAuthenticator, JWTUtil
+from spaceone.core.auth.jwt import JWTUtil
 from spaceone.core.transaction import Transaction, ERROR_AUTHENTICATE_FAILURE
 from spaceone.inventory.connector.monitoring_connector import MonitoringConnector
 
@@ -11,17 +12,18 @@ _LOGGER = logging.getLogger(__name__)
 
 class MonitoringManager(BaseManager):
 
-    def __init__(self, params, **kwargs):
-        self.params = params
-        self.domain_id = None
-        self.connector = None
-        super().__init__(**kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(transaction=None, config=None)
+        secret_data = kwargs.get('secret_data')
 
-    def set_connector(self):
-        #transaction, inventory_config, domain_id = self._get_sample_connect_config(self.params.get('secret_data', {}))
-        transaction, inventory_config, domain_id = self.get_connect_config(self.params.get('secret_data', {}))
-        self.connector = MonitoringConnector(transaction, inventory_config)
-        self.domain_id = domain_id
+        try:
+            transaction = self._get_transaction(secret_data)
+            self.connector = MonitoringConnector(transaction, self._get_config(secret_data, 'monitoring'))
+            self.domain_id = secret_data.get('domain_id')
+
+        except Exception as e:
+            print()
+            raise ERROR_UNKNOWN(message=e)
 
     def list_data_source(self):
         query = self._get_data_source_query()
@@ -63,50 +65,6 @@ class MonitoringManager(BaseManager):
         metrics = self.connector.metric_get_data(param, self.domain_id)
         return metrics
 
-    def get_connect_config(self, config_data):
-        api_key = config_data.get('api_key', None)
-        transaction = Transaction({'token': api_key})
-        inventory_config = self._get_matched_end_point('monitoring', config_data.get('endpoint'))
-        domain_id = self._extract_domain_id(api_key)
-        return transaction, inventory_config, domain_id
-
-    @staticmethod
-    def _extract_domain_id(token):
-        try:
-            decoded = JWTUtil.unverified_decode(token)
-        except Exception:
-            _LOGGER.debug(f'[ERROR_AUTHENTICATE_FAILURE] token: {token}')
-            raise ERROR_AUTHENTICATE_FAILURE(message='Cannot decode token.')
-
-        domain_id = decoded.get('did')
-
-        if domain_id is None:
-            raise ERROR_AUTHENTICATE_FAILURE(message='Empty domain_id provided.')
-
-        return domain_id
-
-    @staticmethod
-    def _get_matched_end_point(flag, endpoints):
-        endpoint_vo = None
-        for end_point in endpoints.get('results', []):
-            if end_point.get('service') == flag:
-                ep = end_point.get('endpoint')
-                endpoint_vo = {
-                    "endpoint": {
-                        ep[ep.rfind('/') + 1:]: ep[0:ep.rfind('/')]
-                    }
-                }
-                break
-        return endpoint_vo
-
-    @staticmethod
-    def _get_sample_connect_config(config_data):
-        transaction = Transaction({
-            'token': config_data.get('access_token', None)
-        })
-        inventory_config = config_data.get('MonitoringConnector', None)
-        return transaction, inventory_config, config_data.get('domain_id')
-
     @staticmethod
     def _get_data_source_query():
         query = {}
@@ -120,3 +78,19 @@ class MonitoringManager(BaseManager):
         })
 
         return query
+
+    @staticmethod
+    def _get_transaction(secret_data):
+        return Transaction({'token': secret_data.get('api_key', None)})
+
+    @staticmethod
+    def _get_config(secret_data, service_name):
+        end_point_list = secret_data.get('end_point_list', [])
+        for end_point in end_point_list:
+            if end_point.get('service') == service_name:
+                ep = end_point.get('endpoint')
+                return {
+                    "endpoint": {
+                        ep[ep.rfind('/') + 1:]: ep[0:ep.rfind('/')]
+                    }
+                }
