@@ -22,6 +22,7 @@ class InventoryConnector(BaseConnector):
     def _init_client(self):
         for version, uri in self.config['endpoint'].items():
             e = parse_endpoint(uri)
+
             self.client = pygrpc.client(endpoint=f'{e.get("hostname")}:{e.get("port")}', version=version)
 
     def _check_config(self):
