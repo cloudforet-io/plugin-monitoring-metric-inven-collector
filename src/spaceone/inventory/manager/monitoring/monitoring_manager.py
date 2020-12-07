@@ -6,6 +6,7 @@ from spaceone.core.manager import BaseManager
 from spaceone.core.auth.jwt import JWTUtil
 from spaceone.core.transaction import Transaction, ERROR_AUTHENTICATE_FAILURE
 from spaceone.inventory.connector.monitoring_connector import MonitoringConnector
+from pprint import pprint
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,11 +43,13 @@ class MonitoringManager(BaseManager):
         return metric_list
 
     def get_metric_data(self, data_source_id, resource_type, resource, metric, start, end, period, stat):
-        metric_resources = []
-        if isinstance(resource, str):
-            metric_resources.append(resource)
-        else:
-            metric_resources = resource
+
+        metrics = {'domain_id': self.domain_id,
+                   'labels': [],
+                   'resource_values': {}
+                   }
+
+        metric_resources = [resource] if isinstance(resource, str) else resource
 
         param = {
             'data_source_id': data_source_id,
@@ -62,7 +65,11 @@ class MonitoringManager(BaseManager):
         if stat:
             param.update({'stat': stat})
 
-        metrics = self.connector.metric_get_data(param, self.domain_id)
+        try:
+            metrics = self.connector.metric_get_data(param, self.domain_id)
+        except Exception as e:
+            print(f'[ERROR: {e}]')
+
         return metrics
 
     @staticmethod

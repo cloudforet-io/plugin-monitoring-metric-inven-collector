@@ -60,9 +60,14 @@ class InventoryManager(BaseManager):
 
     @staticmethod
     def _get_server_query(provider):
-
+        # 'server-6fedbc46ad87' 'server-b65aa5624984',
         query = {
             # 'page': {'limit': 1},
+            "filter": [{
+                "k": 'server_id',
+                "v": ['server-39fd960a96be' ,'server-7713bd336a4e','server-05e2b28b9b57'],
+                "o": "in"
+            }],
             "only": [
                 "server_id",
                 "provider",

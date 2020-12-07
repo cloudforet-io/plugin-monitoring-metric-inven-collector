@@ -1,17 +1,15 @@
 __all__ = ['CollectorManager']
 
-import logging
-from spaceone.core.error import *
 from spaceone.core.manager import BaseManager
 from datetime import datetime, timedelta
 from spaceone.inventory.error.custom import *
 from spaceone.inventory.model.server import *
 from spaceone.inventory.libs.schema.base import ReferenceModel
-
-
+from pprint import pprint
 
 _LOGGER = logging.getLogger(__name__)
 COLLECTIVE_STATE = ['max', 'avg']
+DEFAULT_INTERVAL = 86400
 
 
 class CollectorManager(BaseManager):
@@ -67,6 +65,11 @@ class CollectorManager(BaseManager):
 
                 if provider in metric_info[dict_key[0]][dict_key[1]]:
                     for provider_metric in metric_info[dict_key[0]][dict_key[1]][provider]:
+
+                        # metric_data contains metric data via index
+                        # 0: max (Max)
+                        # 1: avg (Average or Mean)
+
                         metric_data = [{}, {}]
 
                         if provider_metric.get('metric') != '':
@@ -82,64 +85,61 @@ class CollectorManager(BaseManager):
                             param.update({'stat_flag': 'avg'})
                             metric_data[1] = self.get_metric_data(param)
 
-                            if metric_data[0].get('labels') != [] and metric_data[1].get('labels') != []:
-                                server_monitoring_vo[dict_key[0]].update(
-                                    {dict_key[1]: self._get_collect_data_per_state(metric_data)})
+                            vo = server_monitoring_vo[dict_key[0]].get(dict_key[1])
+                            server_monitoring_vo[dict_key[0]].update(
+                                {dict_key[1]: self.get_collect_data_per_state(metric_data, server_ids, vo)})
 
         return server_monitoring_vo
-
-
 
     def get_metric_data(self, params):
         stat_flag = 'MAX'
 
-        # Default: 86400
-        # Sample: 21600
-
-        stat_interval = params.get('stat_interval') if params.get('stat_interval') is not None else 86400
+        stat_interval = params.get('stat_interval') if params.get('stat_interval') is not None else DEFAULT_INTERVAL
 
         if params.get('stat_flag') == 'avg':
             stat_flag = 'AVERAGE' if params.get('provider') == 'aws' else 'MEAN'
 
-        return self.monitoring_manager.get_metric_data(params.get('data_source_id'),
-                                                       params.get('source_type'),
-                                                       params.get('server_ids'),
-                                                       params.get('metric'),
-                                                       params.get('start'),
-                                                       params.get('end'),
-                                                       stat_interval,
-                                                       stat_flag)
+        monitoring_data = self.monitoring_manager.get_metric_data(params.get('data_source_id'),
+                                                                  params.get('source_type'),
+                                                                  params.get('server_ids'),
+                                                                  params.get('metric'),
+                                                                  params.get('start'),
+                                                                  params.get('end'),
+                                                                  stat_interval,
+                                                                  stat_flag)
 
-    def get_data_source_info_by_provider(self, provider):
-        data_source = self.data_source_info.get(provider, [])
-        return data_source[0] if len(data_source) > 0 else None
+        return monitoring_data
 
-    @staticmethod
-    def _get_metric_param(provider, data_source_id, source_type, server_ids, metric, start, end):
-        return {
-            'provider': provider,
-            'data_source_id': data_source_id,
-            'source_type': source_type,
-            'server_ids': server_ids,
-            'metric': metric,
-            'start': start,
-            'end': end,
-        }
-
-    @staticmethod
-    def _get_collect_data_per_state(metric_data):
+    def get_collect_data_per_state(self, metric_data, server_ids, previous_dt):
         collected_data_map = {}
         if len(metric_data) != len(metric_data):
             raise ERROR_NOT_SUPPORT_STAT(supported_stat=' | '.join(COLLECTIVE_STATE))
-
         for idx, state in enumerate(COLLECTIVE_STATE):
-            collected_data_map.update({
-                state: metric_data[idx]
-            })
+            state_data = metric_data[idx]
+            filter_dt = self._get_only_available_values(state_data, server_ids)
+            if previous_dt:
+                previous_filtered = self._get_only_available_values(previous_dt[state], server_ids)
+                if bool(filter_dt.get('resource_values', {})):
+                    merge_pre = previous_filtered.get('resource_values', {})
+                    merged_aft = filter_dt.get('resource_values', {})
+                    resource = {**merge_pre, **merged_aft}
+                    collected_data_map.update({
+                        state: { 'resource_values': resource,
+                                 'labels': filter_dt.get('labels'),
+                                 'domain_id': filter_dt.get('domain_id')}
+                    })
+                else:
+                    collected_data_map.update({
+                        state: previous_filtered
+                    })
+            else:
+                collected_data_map.update({
+                    state: filter_dt
+                })
+
         return collected_data_map
 
-    @staticmethod
-    def _set_metric_data_to_server(metric_info_vo, servers, collected_data):
+    def set_metric_data_to_server(self, metric_info_vo, servers, collected_data):
         return_list = []
         metric_keys = metric_info_vo.get('key')
 
@@ -160,11 +160,17 @@ class CollectorManager(BaseManager):
 
                     if key[0] in collected_data and key[1] in collected_data[key[0]]:
                         resources = collected_data[key[0]][key[1]]
+
                         if state in resources:
-                            server_vo[key[0]][key[1]].update({state: {
-                                'labels': resources[state].get('labels', []),
-                                'values': resources[state].get('resource_values', {}).get(server_id, [])
-                            }})
+                            # If perfer to deliver raw data from monitoring.
+                            # server_vo[key[0]][key[1]].update({state: {
+                            #     'labels': resources[state].get('labels', []),
+                            #     'values': resources[state].get('resource_values', {}).get(server_id, [])
+                            # }})
+                            metric_value = self._get_data_only(resources, state, server_id)
+
+                            if metric_value is not None:
+                                server_vo[key[0]][key[1]].update({state: round(metric_value, 1)})
 
             monitoring_data = Server({'monitoring': Monitoring(server_vo, strict=False)}, strict=False)
 
@@ -179,3 +185,56 @@ class CollectorManager(BaseManager):
             return_list.append(ServerInstanceResponse({'resource': compute_vm_resource}))
 
         return return_list
+
+    def get_data_source_info_by_provider(self, provider):
+        data_source = self.data_source_info.get(provider, [])
+        return data_source[0] if len(data_source) > 0 else None
+
+
+
+    @staticmethod
+    def _get_data_only(metric_data, state, server_id):
+
+        data_only = None
+        resource_values = metric_data[state].get('resource_values', {})
+        values = resource_values.get(server_id)
+
+        if values and len(values) > 0:
+            data_only = values[0]
+
+        return data_only
+
+    @staticmethod
+    def _is_update_able(metric, server_id):
+        resource_values = metric.get('resource_values')
+        values = resource_values.get(server_id)
+
+        return False if not values or values is None else True
+
+    @staticmethod
+    def _get_metric_param(provider, data_source_id, source_type, server_ids, metric, start, end):
+        return {
+            'provider': provider,
+            'data_source_id': data_source_id,
+            'source_type': source_type,
+            'server_ids': server_ids,
+            'metric': metric,
+            'start': start,
+            'end': end,
+        }
+
+    @staticmethod
+    def _get_only_available_values(metric_monitoring_data, server_ids):
+        dummy = metric_monitoring_data.copy()
+
+        for server_id in server_ids:
+            if 'resource_values' in dummy and dummy['resource_values'].get(server_id) == []:
+                dummy['resource_values'].pop(server_id, None)
+
+        metric_monitoring_data.update({
+            'resource_values': dummy.get('resource_values', {})
+        })
+
+        return metric_monitoring_data
+
+
