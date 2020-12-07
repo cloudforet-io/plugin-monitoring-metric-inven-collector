@@ -10,14 +10,15 @@ _LOGGER = logging.getLogger(__name__)
 ComputeEngine Instance
 '''
 
+
 class MetricDataModel(Model):
     labels = ListType(DictType(IntType), required=True)
     values = ListType(UnionType((FloatType, IntType)), required=True)
 
 
 class CollectType(Model):
-    avg = ModelType(MetricDataModel, serialize_when_none=False)
-    max = ModelType(MetricDataModel, serialize_when_none=False)
+    avg = FloatType(serialize_when_none=False)
+    max = FloatType(serialize_when_none=False)
 
 
 class CPUMonitoring(Model):

@@ -84,10 +84,12 @@ class CollectorService(BaseService):
         all_servers_list = inventory_manager.list_servers(None)
         providers, server_ids, servers = self._get_metric_ids_per_provider(all_servers_list)
 
+        # providers, server_ids, servers, accounts = self._get_resource_params_per_provider_and_account(all_servers_list)
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKER) as executor:
             future_executors = []
             for execute_manager in self.execute_managers:
-                print(f'@@@ {execute_manager} @@@')
+                print(f'@@@ {execute_manager} @@@ \n')
                 _manager = self.locator.get_manager(execute_manager, secret_data=collector_resource)
                 if _manager.provider in providers:
                     params.update({'server_ids': server_ids, 'servers': servers})
@@ -154,6 +156,50 @@ class CollectorService(BaseService):
                 })
 
         return providers, provider_vo, servers_vo
+
+    @staticmethod
+    def _get_resource_params_per_provider_and_account(servers):
+
+        providers = []
+        account_vo = {}
+        server_id_vo = {}
+        servers_vo = {}
+
+        for server in servers:
+            account = server.get('data', {}).get('compute', {}).get('account')
+            provider = server.get('provider')
+
+            if provider in providers:
+                if account in server_id_vo.get(provider):
+                    server_id_vo.get(provider)[account].append(server.get('server_id'))
+                    servers_vo.get(provider)[account].append(server)
+                else:
+                    if account not in account_vo.get(provider):
+                        account_vo.get(provider).append(account)
+                    server_id_vo.get(provider).update({
+                        account: [server.get('server_id')]}
+                    )
+                    servers_vo.get(provider).update({
+                        account: [server]}
+                    )
+            else:
+                providers.append(provider)
+                account_vo.update({ provider: [account] })
+                server_id_vo.update({
+                    provider: {
+                        account: [server.get('server_id')]
+                    }
+                })
+                servers_vo.update({
+                    provider: {
+                        account: [server]
+                    }
+                })
+
+        return providers, server_id_vo, servers_vo, account_vo
+
+
+
 
     @staticmethod
     def _get_collective_metric_key(metric_infos):
