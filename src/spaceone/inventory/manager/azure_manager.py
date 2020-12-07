@@ -1,20 +1,18 @@
 __all__ = ['AzureManager']
+
 import time
-import logging
 from spaceone.inventory.model.server import *
-from spaceone.inventory.libs.schema.base import ReferenceModel
 from spaceone.inventory.libs.manager import CollectorManager
-from pprint import pprint
+
 _LOGGER = logging.getLogger(__name__)
-COLLECTIVE_STATE = ['max', 'avg']
 
 
 class AzureManager(CollectorManager):
-
     provider = 'azure'
 
     def collect_monitoring_data(self, params):
-        print("**  Azure monitoring collecting has started **")
+        print("**  Azure monitoring collecting has started **\n")
+
         start_time = time.time()
         azure_vm_instances = []
         try:
@@ -27,12 +25,11 @@ class AzureManager(CollectorManager):
                                                                self.start,
                                                                self.end)
 
+                azure_servers_vos = self.set_metric_data_to_server(params.get('metric_schema'),
+                                                                    servers,
+                                                                    monitoring_data)
 
-                servers_vos = self._set_metric_data_to_server(params.get('metric_schema'),
-                                                              servers,
-                                                              monitoring_data)
-
-                azure_vm_instances.extend(servers_vos)
+                azure_vm_instances.extend(azure_servers_vos)
 
         except Exception as e:
             print(f'[ERROR: {e}]')
