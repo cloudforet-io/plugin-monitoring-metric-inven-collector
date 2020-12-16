@@ -10,6 +10,7 @@ from pprint import pprint
 _LOGGER = logging.getLogger(__name__)
 COLLECTIVE_STATE = ['max', 'avg']
 DEFAULT_INTERVAL = 86400
+MAX_WORKER = 20
 
 
 class CollectorManager(BaseManager):
@@ -18,10 +19,12 @@ class CollectorManager(BaseManager):
     def __init__(self, **kwargs):
         super().__init__(transaction=None, config=None)
         secret_data = kwargs.get('secret_data')
+        self.data_source = None
         self.end = None
         self.start = None
 
         try:
+            self.max_worker = MAX_WORKER
             self.inventory_manager = secret_data.get('inventory_manager')
             self.monitoring_manager = secret_data.get('monitoring_manager')
             self.domain_id = secret_data.get('domain_id')
@@ -49,14 +52,24 @@ class CollectorManager(BaseManager):
         self.end = datetime.utcnow()
         self.start = self.end - timedelta(days=interval_options)
 
+    def list_metrics(self, provider, resource_type, server_ids):
+        if self.data_source is None:
+            self.data_source = self.get_data_source_info_by_provider(provider)
+        metric_list = self.monitoring_manager.get_metric_list(self.data_source.get('data_source_id'),
+                                                resource_type,
+                                                server_ids)
+
+        return metric_list
+
     def get_servers_metric_data(self, metric_info_vo, provider, server_ids, start, end):
         server_monitoring_vo = {}
         metric_info = metric_info_vo.get('json')
         metric_keys = metric_info_vo.get('key')
 
-        data_source = self.get_data_source_info_by_provider(provider)
+        if self.data_source is None:
+            self.data_source = self.get_data_source_info_by_provider(provider)
 
-        if data_source:
+        if self.data_source:
             for collect_item in metric_keys:
                 dict_key = collect_item.split('.')
 
@@ -74,7 +87,7 @@ class CollectorManager(BaseManager):
 
                         if provider_metric.get('metric') != '':
                             param = self._get_metric_param(provider,
-                                                           data_source.get('data_source_id'),
+                                                           self.data_source.get('data_source_id'),
                                                            'inventory.Server',
                                                            server_ids,
                                                            provider_metric.get('metric'),
@@ -148,29 +161,31 @@ class CollectorManager(BaseManager):
 
             provider = server.get('provider')
             server_id = server.get('server_id')
-            for metric_key in metric_keys:
-                key = metric_key.split('.')
 
-                if key[0] not in server_vo and key[0] in collected_data:
-                    server_vo.update({key[0]: {}})
+            if collected_data != {}:
+                for metric_key in metric_keys:
+                    key = metric_key.split('.')
 
-                for state in COLLECTIVE_STATE:
-                    if key[1] not in server_vo[key[0]] and key[1] in collected_data[key[0]]:
-                        server_vo[key[0]].update({key[1]: {}})
+                    if key[0] not in server_vo and key[0] in collected_data:
+                        server_vo.update({key[0]: {}})
 
-                    if key[0] in collected_data and key[1] in collected_data[key[0]]:
-                        resources = collected_data[key[0]][key[1]]
+                    for state in COLLECTIVE_STATE:
+                        if key[1] not in server_vo[key[0]] and key[1] in collected_data[key[0]]:
+                            server_vo[key[0]].update({key[1]: {}})
 
-                        if state in resources:
-                            # If perfer to deliver raw data from monitoring.
-                            # server_vo[key[0]][key[1]].update({state: {
-                            #     'labels': resources[state].get('labels', []),
-                            #     'values': resources[state].get('resource_values', {}).get(server_id, [])
-                            # }})
-                            metric_value = self._get_data_only(resources, state, server_id)
+                        if key[0] in collected_data and key[1] in collected_data[key[0]]:
+                            resources = collected_data[key[0]][key[1]]
 
-                            if metric_value is not None:
-                                server_vo[key[0]][key[1]].update({state: round(metric_value, 1)})
+                            if state in resources:
+                                # If perfer to deliver raw data from monitoring.
+                                # server_vo[key[0]][key[1]].update({state: {
+                                #     'labels': resources[state].get('labels', []),
+                                #     'values': resources[state].get('resource_values', {}).get(server_id, [])
+                                # }})
+                                metric_value = self._get_data_only(resources, state, server_id)
+
+                                if metric_value is not None:
+                                    server_vo[key[0]][key[1]].update({state: round(metric_value, 1)})
 
             monitoring_data = Server({'monitoring': Monitoring(server_vo, strict=False)}, strict=False)
 
@@ -237,4 +252,17 @@ class CollectorManager(BaseManager):
 
         return metric_monitoring_data
 
+    @staticmethod
+    def _get_only_available_ids(available_resources, server_ids):
+        _available_resources = []
+        if server_ids:
+            if isinstance(server_ids, list):
+                for server_id in server_ids:
+                    if available_resources.get(server_id):
+                        _available_resources.append(server_id)
+            else:
+                if available_resources.get(server_ids):
+                    _available_resources.append(server_ids)
+
+        return _available_resources
 

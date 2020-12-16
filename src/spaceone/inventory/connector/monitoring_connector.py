@@ -6,7 +6,7 @@ from spaceone.core.connector import BaseConnector
 from spaceone.core import pygrpc
 from spaceone.core.utils import parse_endpoint
 from spaceone.core.error import *
-
+from pprint import pprint
 __all__ = ['MonitoringConnector']
 
 _LOGGER = logging.getLogger(__name__)
@@ -41,6 +41,7 @@ class MonitoringConnector(BaseConnector):
 
     def metric_list(self, param, domain_id):
         param.update({'domain_id': domain_id})
+
         response = self.client.Metric.list(param, metadata=self.transaction.get_connection_meta())
         return self._change_message(response)
 

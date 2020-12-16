@@ -33,14 +33,14 @@ class MonitoringManager(BaseManager):
         return data_source_list
 
     def get_metric_list(self, data_source_id, resource_type, resources):
+        _resource = resources if isinstance(resources, list) else [resources]
         param = {
             'data_source_id': data_source_id,
             'resource_type': resource_type,
-            'resources': [resources]
+            'resources': _resource
         }
         metrics = self.connector.metric_list(param, self.domain_id)
-        metric_list = metrics.get('metrics', [])
-        return metric_list
+        return metrics
 
     def get_metric_data(self, data_source_id, resource_type, resource, metric, start, end, period, stat):
 
@@ -68,7 +68,10 @@ class MonitoringManager(BaseManager):
         try:
             metrics = self.connector.metric_get_data(param, self.domain_id)
         except Exception as e:
+
+            print('##################################')
             print(f'[ERROR: {e}]')
+            print('##################################')
 
         return metrics
 
