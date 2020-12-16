@@ -20,18 +20,24 @@ class AWSManager(CollectorManager):
 
             server_ids = params.get('server_ids').get(self.provider)
             servers = params.get('servers').get(self.provider)
-            if None not in [server_ids, servers]:
-                monitoring_data = self.get_servers_metric_data(params.get('metric_schema'),
-                                                               self.provider,
-                                                               server_ids,
-                                                               self.start,
-                                                               self.end)
 
-                ec2_servers_vos = self.set_metric_data_to_server(params.get('metric_schema'),
-                                                                  servers,
-                                                                  monitoring_data)
+            # Check available resources
+            resources_check = self.list_metrics(self.provider, 'inventory.Server', server_ids)
+            available_resources = self._get_only_available_ids(resources_check.get('available_resources', {}),
+                                                               server_ids)
 
-                ec2_instance_resources.extend(ec2_servers_vos)
+            # Apply only server that is available for get_metric
+            monitoring_data = self.get_servers_metric_data(params.get('metric_schema'),
+                                                           self.provider,
+                                                           available_resources,
+                                                           self.start,
+                                                           self.end) if available_resources else {}
+
+            ec2_servers_vos = self.set_metric_data_to_server(params.get('metric_schema'),
+                                                              servers,
+                                                              monitoring_data)
+
+            ec2_instance_resources.extend(ec2_servers_vos)
 
         except Exception as e:
             print(f'[ERROR: {e}]')
@@ -40,3 +46,6 @@ class AWSManager(CollectorManager):
         print(f' AWS Monitoring data collecting has Finished in  {time.time() - start_time} Seconds')
 
         return ec2_instance_resources
+
+    def collect_monitoring_per(self, params):
+        pass
