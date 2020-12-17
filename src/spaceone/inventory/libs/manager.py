@@ -12,7 +12,7 @@ _LOGGER = logging.getLogger(__name__)
 COLLECTIVE_STATE = ['max', 'avg']
 DEFAULT_INTERVAL = 86400
 MAX_WORKER = 20
-MAX_DIVIDING_COUNT = 30
+MAX_DIVIDING_COUNT = 20
 
 
 class CollectorManager(BaseManager):
@@ -203,56 +203,56 @@ class CollectorManager(BaseManager):
 
         return return_list
 
-    def collect_monitoring_per_accounts(self, params):
-        _account = params.get('account')
-        server_ids = self.get_divided_into_max_count(MAX_DIVIDING_COUNT, params.get('server_ids'))
-        servers = self.get_divided_into_max_count(MAX_DIVIDING_COUNT, params.get('servers'))
-        provider = self.provider.replace('_', ' ').title() if self.provider else ''
-        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKER) as executor:
-            future_executors = []
-            for idx, account in enumerate(server_ids, start=0):
-                print(f"@@@ Processing {provider} account:{_account}  {idx + 1}/{len(server_ids)} @@@ \n")
-                _params = params.copy()
-                _params.update({
-                    'server_ids': account,
-                    'servers': servers[idx],
-                    'account': account,
-                })
-                future_executors.append(executor.submit(self.collect_monitoring_per_ids, _params))
-
-            for future in concurrent.futures.as_completed(future_executors):
-                for result in future.result():
-                    yield result
-
-    def collect_monitoring_per_ids(self, params):
-        resources = []
-        # Check available resources
-        server_ids = params.get('server_ids')
-        servers = params.get('servers')
-
-        try:
-            resources_check = self.list_metrics(self.provider, 'inventory.Server', server_ids)
-            available_resources = self._get_only_available_ids(resources_check.get('available_resources', {}),
-                                                               server_ids)
-
-            # Apply only server that is available for get_metric
-            monitoring_data = self.get_servers_metric_data(params.get('metric_schema'),
-                                                           self.provider,
-                                                           available_resources,
-                                                           self.start,
-                                                           self.end) if available_resources else {}
-
-            azure_servers_vos = self.set_metric_data_to_server(params.get('metric_schema'),
-                                                               servers,
-                                                               monitoring_data)
-
-            resources.extend(azure_servers_vos)
-
-        except Exception as e:
-            print(f'[ERROR: {e}]')
-            raise e
-
-        return resources
+    # def collect_monitoring_per_accounts(self, params):
+    #     _account = params.get('account')
+    #     server_ids = self.get_divided_into_max_count(MAX_DIVIDING_COUNT, params.get('server_ids'))
+    #     servers = self.get_divided_into_max_count(MAX_DIVIDING_COUNT, params.get('servers'))
+    #     provider = self.provider.replace('_', ' ').title() if self.provider else ''
+    #     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKER) as executor:
+    #         future_executors = []
+    #         for idx, account in enumerate(server_ids, start=0):
+    #             print(f"@@@ Processing {provider} account:{_account}  {idx + 1}/{len(server_ids)} @@@ \n")
+    #             _params = params.copy()
+    #             _params.update({
+    #                 'server_ids': account,
+    #                 'servers': servers[idx],
+    #                 'account': account,
+    #             })
+    #             future_executors.append(executor.submit(self.collect_monitoring_per_ids, _params))
+    # 
+    #         for future in concurrent.futures.as_completed(future_executors):
+    #             for result in future.result():
+    #                 yield result
+    # 
+    # def collect_monitoring_per_ids(self, params):
+    #     resources = []
+    #     # Check available resources
+    #     server_ids = params.get('server_ids')
+    #     servers = params.get('servers')
+    # 
+    #     try:
+    #         resources_check = self.list_metrics(self.provider, 'inventory.Server', server_ids)
+    #         available_resources = self._get_only_available_ids(resources_check.get('available_resources', {}),
+    #                                                            server_ids)
+    # 
+    #         # Apply only server that is available for get_metric
+    #         monitoring_data = self.get_servers_metric_data(params.get('metric_schema'),
+    #                                                        self.provider,
+    #                                                        available_resources,
+    #                                                        self.start,
+    #                                                        self.end) if available_resources else {}
+    # 
+    #         azure_servers_vos = self.set_metric_data_to_server(params.get('metric_schema'),
+    #                                                            servers,
+    #                                                            monitoring_data)
+    # 
+    #         resources.extend(azure_servers_vos)
+    # 
+    #     except Exception as e:
+    #         print(f'[ERROR: {e}]')
+    #         raise e
+    # 
+    #     return resources
 
     @staticmethod
     def _get_data_only(metric_data, state, server_id):

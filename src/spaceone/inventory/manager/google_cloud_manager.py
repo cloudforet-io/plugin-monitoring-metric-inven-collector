@@ -31,7 +31,7 @@ class GoogleCloudManager(CollectorManager):
                         'servers': google_servers.get(account, []),
                         'account': account,
                     })
-                    future_executors.append(executor.submit(self.collect_monitoring_per_accounts, _params))
+                    future_executors.append(executor.submit(self.collect_google_monitoring_dt_per_accounts, _params))
 
                 for future in concurrent.futures.as_completed(future_executors):
                     for result in future.result():
@@ -43,7 +43,7 @@ class GoogleCloudManager(CollectorManager):
 
         print(f' Google Cloud Monitoring data collecting has Finished in  {time.time() - start_time} Seconds')
 
-    def collect_monitoring_per_accounts(self, params):
+    def collect_google_monitoring_dt_per_accounts(self, params):
         _account = params.get('account')
         server_id_group = self.get_divided_into_max_count(MAX_WORKER, params.get('server_ids'))
         servers = self.get_divided_into_max_count(MAX_WORKER, params.get('servers'))
@@ -58,13 +58,13 @@ class GoogleCloudManager(CollectorManager):
                     'server_ids': server_ids,
                     'servers': servers[idx],
                 })
-                future_executors.append(executor.submit(self.collect_monitoring_per_ids, _params))
+                future_executors.append(executor.submit(self.collect_google_monitoring_per_ids, _params))
 
             for future in concurrent.futures.as_completed(future_executors):
                 for result in future.result():
                     yield result
 
-    def collect_monitoring_per_ids(self, params):
+    def collect_google_monitoring_per_ids(self, params):
         google_vm_resources = []
         # Check available resources
         server_ids = params.get('server_ids')
