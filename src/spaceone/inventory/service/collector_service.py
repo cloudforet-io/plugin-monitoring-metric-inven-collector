@@ -10,7 +10,7 @@ from spaceone.inventory.manager.monitoring.inventory_manager import InventoryMan
 from spaceone.inventory.manager.monitoring.monitoring_manager import MonitoringManager
 
 _LOGGER = logging.getLogger(__name__)
-MAX_WORKER = 20
+MAX_WORKER = 30
 SUPPORTED_RESOURCE_TYPE = ['inventory.Server', 'inventory.CloudService']
 FILTER_FORMAT = []
 
@@ -23,7 +23,7 @@ class CollectorService(BaseService):
         self.execute_managers = [
             'AWSManager',
             'AzureManager',
-            'GoogleCloudManager'
+            'GoogleCloudManager',
         ]
 
     @check_required(['options'])
@@ -82,17 +82,24 @@ class CollectorService(BaseService):
                                    })
 
         all_servers_list = inventory_manager.list_servers(None)
-        providers, server_ids, servers = self._get_metric_ids_per_provider(all_servers_list)
 
-        # providers, server_ids, servers, accounts = self._get_resource_params_per_provider_and_account(all_servers_list)
+        # filter_out that doesn't need at all.
+        # providers, server_ids, servers = self._get_metric_ids_per_provider(all_servers_list)
+        # filtered_list = self.get_only_valid_resources(providers, servers, server_ids,
+        #                                               'inventory.Server',
+        #                                               data_source_info,
+        #                                               monitoring_manager)
+
+        _providers, _server_ids, _servers, _accounts = self._get_resource_params_per_provider_and_account(
+            all_servers_list)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKER) as executor:
             future_executors = []
             for execute_manager in self.execute_managers:
                 print(f'@@@ {execute_manager} @@@ \n')
                 _manager = self.locator.get_manager(execute_manager, secret_data=collector_resource)
-                if _manager.provider in providers:
-                    params.update({'server_ids': server_ids, 'servers': servers})
+                if _manager.provider in _providers:
+                    params.update({'server_ids': _server_ids, 'servers': _servers, 'accounts': _accounts})
                     future_executors.append(executor.submit(_manager.collect_resources, params))
 
             for future in concurrent.futures.as_completed(future_executors):
@@ -184,7 +191,7 @@ class CollectorService(BaseService):
                     )
             else:
                 providers.append(provider)
-                account_vo.update({ provider: [account] })
+                account_vo.update({provider: [account]})
                 server_id_vo.update({
                     provider: {
                         account: [server.get('server_id')]
@@ -198,9 +205,6 @@ class CollectorService(BaseService):
 
         return providers, server_id_vo, servers_vo, account_vo
 
-
-
-
     @staticmethod
     def _get_collective_metric_key(metric_infos):
         metric_keys = []
@@ -208,5 +212,4 @@ class CollectorService(BaseService):
             if isinstance(metric_infos[metric_info], dict):
                 for metric in metric_infos[metric_info]:
                     metric_keys.append(f'{metric_info}.{metric}')
-
         return metric_keys
