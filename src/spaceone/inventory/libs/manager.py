@@ -1,5 +1,6 @@
 __all__ = ['CollectorManager']
 
+import concurrent.futures
 from spaceone.core.manager import BaseManager
 from datetime import datetime, timedelta
 from spaceone.inventory.error.custom import *
@@ -11,6 +12,7 @@ _LOGGER = logging.getLogger(__name__)
 COLLECTIVE_STATE = ['max', 'avg']
 DEFAULT_INTERVAL = 86400
 MAX_WORKER = 20
+MAX_DIVIDING_COUNT = 30
 
 
 class CollectorManager(BaseManager):
@@ -19,7 +21,7 @@ class CollectorManager(BaseManager):
     def __init__(self, **kwargs):
         super().__init__(transaction=None, config=None)
         secret_data = kwargs.get('secret_data')
-        self.data_source = None
+        self.data_source = secret_data.get('data_source_info')
         self.end = None
         self.start = None
 
@@ -28,7 +30,6 @@ class CollectorManager(BaseManager):
             self.inventory_manager = secret_data.get('inventory_manager')
             self.monitoring_manager = secret_data.get('monitoring_manager')
             self.domain_id = secret_data.get('domain_id')
-            self.data_source_info = secret_data.get('data_source_info')
             self.set_time(1)
 
         except Exception as e:
@@ -53,23 +54,24 @@ class CollectorManager(BaseManager):
         self.start = self.end - timedelta(days=interval_options)
 
     def list_metrics(self, provider, resource_type, server_ids):
-        if self.data_source is None:
-            self.data_source = self.get_data_source_info_by_provider(provider)
-        metric_list = self.monitoring_manager.get_metric_list(self.data_source.get('data_source_id'),
-                                                resource_type,
-                                                server_ids)
+        data_source = self.get_data_source_info_by_provider(provider)
+        metric_list = self.monitoring_manager.get_metric_list(data_source.get('data_source_id'),
+                                                              resource_type,
+                                                              server_ids)
 
         return metric_list
+
+    def get_data_source_info_by_provider(self, provider):
+        data_source = self.data_source.get(provider, [])
+        return data_source[0] if len(data_source) > 0 else None
 
     def get_servers_metric_data(self, metric_info_vo, provider, server_ids, start, end):
         server_monitoring_vo = {}
         metric_info = metric_info_vo.get('json')
         metric_keys = metric_info_vo.get('key')
+        data_source = self.get_data_source_info_by_provider(provider)
 
-        if self.data_source is None:
-            self.data_source = self.get_data_source_info_by_provider(provider)
-
-        if self.data_source:
+        if data_source:
             for collect_item in metric_keys:
                 dict_key = collect_item.split('.')
 
@@ -87,7 +89,7 @@ class CollectorManager(BaseManager):
 
                         if provider_metric.get('metric') != '':
                             param = self._get_metric_param(provider,
-                                                           self.data_source.get('data_source_id'),
+                                                           data_source.get('data_source_id'),
                                                            'inventory.Server',
                                                            server_ids,
                                                            provider_metric.get('metric'),
@@ -137,9 +139,9 @@ class CollectorManager(BaseManager):
                     merged_aft = filter_dt.get('resource_values', {})
                     resource = {**merge_pre, **merged_aft}
                     collected_data_map.update({
-                        state: { 'resource_values': resource,
-                                 'labels': filter_dt.get('labels'),
-                                 'domain_id': filter_dt.get('domain_id')}
+                        state: {'resource_values': resource,
+                                'labels': filter_dt.get('labels'),
+                                'domain_id': filter_dt.get('domain_id')}
                     })
                 else:
                     collected_data_map.update({
@@ -201,11 +203,56 @@ class CollectorManager(BaseManager):
 
         return return_list
 
-    def get_data_source_info_by_provider(self, provider):
-        data_source = self.data_source_info.get(provider, [])
-        return data_source[0] if len(data_source) > 0 else None
+    def collect_monitoring_per_accounts(self, params):
+        _account = params.get('account')
+        server_ids = self.get_divided_into_max_count(MAX_DIVIDING_COUNT, params.get('server_ids'))
+        servers = self.get_divided_into_max_count(MAX_DIVIDING_COUNT, params.get('servers'))
+        provider = self.provider.replace('_', ' ').title() if self.provider else ''
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKER) as executor:
+            future_executors = []
+            for idx, account in enumerate(server_ids, start=0):
+                print(f"@@@ Processing {provider} account:{_account}  {idx + 1}/{len(server_ids)} @@@ \n")
+                _params = params.copy()
+                _params.update({
+                    'server_ids': account,
+                    'servers': servers[idx],
+                    'account': account,
+                })
+                future_executors.append(executor.submit(self.collect_monitoring_per_ids, _params))
 
+            for future in concurrent.futures.as_completed(future_executors):
+                for result in future.result():
+                    yield result
 
+    def collect_monitoring_per_ids(self, params):
+        resources = []
+        # Check available resources
+        server_ids = params.get('server_ids')
+        servers = params.get('servers')
+
+        try:
+            resources_check = self.list_metrics(self.provider, 'inventory.Server', server_ids)
+            available_resources = self._get_only_available_ids(resources_check.get('available_resources', {}),
+                                                               server_ids)
+
+            # Apply only server that is available for get_metric
+            monitoring_data = self.get_servers_metric_data(params.get('metric_schema'),
+                                                           self.provider,
+                                                           available_resources,
+                                                           self.start,
+                                                           self.end) if available_resources else {}
+
+            azure_servers_vos = self.set_metric_data_to_server(params.get('metric_schema'),
+                                                               servers,
+                                                               monitoring_data)
+
+            resources.extend(azure_servers_vos)
+
+        except Exception as e:
+            print(f'[ERROR: {e}]')
+            raise e
+
+        return resources
 
     @staticmethod
     def _get_data_only(metric_data, state, server_id):
@@ -266,3 +313,25 @@ class CollectorManager(BaseManager):
 
         return _available_resources
 
+    @staticmethod
+    def get_divided_into_max_count(max_count, divide_targets):
+        return_arr = []
+        for idx, target in enumerate(divide_targets, start=0):
+            return_arr_idx = len(return_arr) - 1
+            if return_arr_idx < 0:
+                return_arr.append([target])
+            else:
+                current_target_length = len(return_arr[return_arr_idx])
+                if current_target_length < max_count:
+                    return_arr[return_arr_idx].append(target)
+                else:
+                    return_arr.append([target])
+        return return_arr
+
+    @staticmethod
+    def _get_total_length(server_ids):
+        length = 0
+        for server_id in server_ids:
+            length = length + len(server_id)
+
+        return length
