@@ -65,7 +65,7 @@ class InventoryManager(BaseManager):
             # 'page': {'limit': 1},
             # "filter": [{
             #     "k": 'server_id',
-            #     "v": ['server-39fd960a96be' ,'server-7713bd336a4e','server-05e2b28b9b57'],
+            #     "v": ['server-320e08504ecb', 'server-1bd57c9c001f', 'server-fbeb5e2c28c2','server-7de654735a9a', 'server-727e1d3d6feb'],
             #     "o": "in"
             # }],
             "only": [
