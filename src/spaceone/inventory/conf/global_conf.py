@@ -2,15 +2,15 @@ CONNECTORS = {
 }
 
 LOG = {
-    'filters': {
-        'masking': {
-            'rules': {
-                'Collector.collect': [
-                    'secret_data'
-                ]
-            }
-        }
-    }
+    # 'filters': {
+    #     'masking': {
+    #         'rules': {
+    #             'Collector.collect': [
+    #                 'secret_data'
+    #             ]
+    #         }
+    #     }
+    # }
 }
 
 HANDLERS = {
