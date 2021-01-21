@@ -15,8 +15,7 @@ Find us also at [Dockerhub](https://hub.docker.com/repository/docker/spaceone/mo
 > Latest stable version : 1.0
 
 ```
-Note: Current version of plugin is limited to collect server type only 
-for followings: 
+Note: Current version of plugin is limited to collect server type only for followings: 
 
 - AWS (EC2)
 - Azure (Compute VM)
