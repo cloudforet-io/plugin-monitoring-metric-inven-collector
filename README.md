@@ -42,8 +42,8 @@ Contact system admin if you need to issue a new service account credential.
 | --------: |:----:|:----|:----| :----|
 | cpu.utilization | (%) | CPUUtilization| Percentage CPU | compute.googleapis.com/instance/cpu/utilization |
 | memory.usage | (%) |  |  |  |
-| memory.total | (bytes) |  | Azure | compute.googleapis.com/instance/memory/balloon/ram_size |
-| memory.used | (bytes) |  | Azure | compute.googleapis.com/instance/memory/balloon/ram_used |
+| memory.total | (bytes) |  |  | compute.googleapis.com/instance/memory/balloon/ram_size |
+| memory.used | (bytes) |  |  | compute.googleapis.com/instance/memory/balloon/ram_used |
 | disk.write_iops | (counts)| DiskWriteOps, EBSWriteOps  | Data Disk Write Operations/Sec | compute.googleapis.com/instance/disk/write_ops_count |
 | disk.write_throughput  | (bytes)| DiskWriteBytes, EBSWriteBytes  | Disk Write Bytes | compute.googleapis.com/instance/disk/write_bytes_count |
 | disk.read_iops  | (counts)| DiskReadOps, EBSReadOps | Disk Read Operations/Sec | compute.googleapis.com/instance/disk/read_ops_count |
