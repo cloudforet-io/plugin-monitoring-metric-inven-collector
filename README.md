@@ -3,6 +3,7 @@
 Monitoring plugin collector categorized metric over clouds that includes aws, google cloud, azure
 
 ![SpaceONE](https://spaceone-custom-assets.s3.ap-northeast-2.amazonaws.com/console-assets/icons/cloud-services/spaceone/spaceone-logo.svg)
+
 **Plugin to collect monitoring-metrics**
 
 > SpaceONE's [plugin-google-cloud-services](https://github.com/spaceone-dev/plugin-monitoring-metric-collector) is a convenient tool to 
