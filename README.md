@@ -22,7 +22,6 @@ Note: Current version of plugin is limited to collect server type only for follo
 - Google Cloud (Compute Instance)  
 
 Other cloud service type will be available soon.  
-
 ```
 
 
@@ -31,9 +30,11 @@ Please contact us if you need any further information. (<support@spaceone.dev>)
 ---
 
 ## Authentication Overview
-You must register SpaceONE's service account to run plugin 'Monitoring-metric-collector'. 
-Please, register ***SpaceONE service account*** in SpaceONE platform. 
-Contact system admin if you need to issue a new Service Account.
+You must register SpaceONE's service account to run plugin 'Monitoring-metric-collector'.
+
+Please, register ***SpaceONE service account credential*** in SpaceONE platform. 
+
+Contact system admin if you need to issue a new service account credential.
 
 
 ## Monitoring Metrics
