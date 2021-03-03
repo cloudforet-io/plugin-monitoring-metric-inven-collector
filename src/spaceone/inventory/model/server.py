@@ -70,11 +70,11 @@ cpu_details_meta = ItemDynamicLayout.set_fields('CPU', fields=[
 
 memory_details_meta = ItemDynamicLayout.set_fields('Memory', fields=[
     TextDyField.data_source('Memory Usage (%) | Avg', 'data.monitoring.memory.usage.avg'),
-    TextDyField.data_source('Memory Total | Avg', 'data.monitoring.memory.total.avg'),
-    TextDyField.data_source('Memory Used  | Avg', 'data.monitoring.memory.used.avg'),
+    SizeField.data_source('Memory Total | Avg', 'data.monitoring.memory.total.avg'),
+    SizeField.data_source('Memory Used  | Avg', 'data.monitoring.memory.used.avg'),
     TextDyField.data_source('Memory Usage (%) | Max', 'data.monitoring.memory.usage.max'),
-    TextDyField.data_source('Memory Total | Max', 'data.monitoring.memory.total.max'),
-    TextDyField.data_source('Memory Used  | Max', 'data.monitoring.memory.used.max'),
+    SizeField.data_source('Memory Total | Max', 'data.monitoring.memory.total.max'),
+    SizeField.data_source('Memory Used  | Max', 'data.monitoring.memory.used.max'),
 ])
 
 disk_details_meta = ItemDynamicLayout.set_fields('Disk', fields=[
