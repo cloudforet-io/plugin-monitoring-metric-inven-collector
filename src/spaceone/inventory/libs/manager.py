@@ -206,7 +206,7 @@ class CollectorManager(BaseManager):
                         }, strict=False)
                         return_list.append(ServerAwsInstanceResponse({'resource': compute_vm_resource}))
                     elif provider == 'azure':
-                        compute_vm_resource = ServerAwsInstanceResource({
+                        compute_vm_resource = ServerAzureInstanceResource({
                             'provider': provider,
                             'cloud_service_group': server.get('cloud_service_group'),
                             'cloud_service_type': server.get('cloud_service_type'),
@@ -214,10 +214,9 @@ class CollectorManager(BaseManager):
                             'reference': ReferenceModel(
                                 monitoring_data.reference(server.get('reference').get('resource_id')))
                         }, strict=False)
-                        return_list.append(ServerAwsInstanceResponse({'resource': compute_vm_resource}))
+                        return_list.append(ServerAzureInstanceResponse({'resource': compute_vm_resource}))
                     elif provider == 'google_cloud':
-
-                        compute_vm_resource = ServerAwsInstanceResource({
+                        compute_vm_resource = ServerGoogleInstanceResource({
                             'provider': provider,
                             'cloud_service_group': server.get('cloud_service_group'),
                             'cloud_service_type': server.get('cloud_service_type'),
@@ -225,7 +224,7 @@ class CollectorManager(BaseManager):
                             'reference': ReferenceModel(
                                 monitoring_data.reference(server.get('reference').get('resource_id')))
                         }, strict=False)
-                        return_list.append(ServerAwsInstanceResponse({'resource': compute_vm_resource}))
+                        return_list.append(ServerGoogleInstanceResponse({'resource': compute_vm_resource}))
 
         return return_list
 
