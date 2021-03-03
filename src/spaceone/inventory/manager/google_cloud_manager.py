@@ -82,11 +82,11 @@ class GoogleCloudManager(CollectorManager):
                                                            self.start,
                                                            self.end) if available_resources else {}
 
-            azure_servers_vos = self.set_metric_data_to_server(params.get('metric_schema'),
+            google_servers_vos = self.set_metric_data_to_server(params.get('metric_schema'),
                                                                servers,
                                                                monitoring_data)
 
-            google_vm_resources.extend(azure_servers_vos)
+            google_vm_resources.extend(google_servers_vos)
 
         except Exception as e:
             print(f'[ERROR: {e}]')
