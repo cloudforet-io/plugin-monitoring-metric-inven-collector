@@ -13,7 +13,7 @@ get monitoring metric data for following clouds:
 >- Google Cloud 
 
 Find us also at [Dockerhub](https://hub.docker.com/repository/docker/spaceone/monitoring-metric-collector)
-> Latest stable version : 1.0
+> Latest stable version : 1.1
 
 ```
 Note: Current version of plugin is limited to collect server type only for followings: 
