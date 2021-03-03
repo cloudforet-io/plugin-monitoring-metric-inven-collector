@@ -1,7 +1,7 @@
 import logging
 
 from schematics import Model
-from schematics.types import ModelType, StringType, ListType, DictType, UnionType, IntType, FloatType
+from schematics.types import ModelType, StringType, ListType, DictType, UnionType, IntType, FloatType, PolyModelType
 from spaceone.inventory.libs.schema.cloud_service import CloudServiceResource, CloudServiceResponse
 
 _LOGGER = logging.getLogger(__name__)

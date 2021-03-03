@@ -200,7 +200,7 @@ class CollectorManager(BaseManager):
                         'cloud_service_type': server.get('cloud_service_type'),
                         'data': monitoring_data,
                         'reference': ReferenceModel(monitoring_data.reference(server.get('reference').get('resource_id')))
-                    })
+                    }, strict=False)
                     return_list.append(ServerInstanceResponse({'resource': compute_vm_resource}))
 
         return return_list
@@ -255,6 +255,177 @@ class CollectorManager(BaseManager):
     #         raise e
     # 
     #     return resources
+
+    @staticmethod
+    def _get_additional_meta_data():
+        return {
+            "view": {
+                "sub_data": {
+                    "layouts": [
+                        {
+                            "options": {
+                                "layouts": [
+                                    {
+                                        "name": "CPU",
+                                        "options": {
+                                            "fields": [
+                                                {
+                                                    "name": "CPU Utilization (Max) | Unit: %",
+                                                    "key": "data.monitoring.cpu.utilization.max",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "CPU Utilization (Avg) | Unit: %",
+                                                    "key": "data.monitoring.cpu.utilization.avg",
+                                                    "type": "text"
+                                                }
+                                            ]
+                                        },
+                                        "type": "item"
+                                    },
+                                    {
+                                        "name": "Memory",
+                                        "options": {
+                                            "fields": [
+                                                {
+                                                    "name": "Memory usage (Max) | Unit: %",
+                                                    "key": "data.monitoring.memory.usage.max",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Memory usage (Avg) | Unit: %",
+                                                    "key": "data.monitoring.memory.usage.avg",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Memory total (Max) | Unit: Bytes",
+                                                    "key": "data.monitoring.memory.total.max",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Memory total (Avg) | Unit: Bytes",
+                                                    "key": "data.monitoring.memory.total.avg",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Memory used (Max) | Unit: Bytes",
+                                                    "key": "data.monitoring.memory.used.max",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Memory used (Avg) | Unit: Bytes",
+                                                    "key": "data.monitoring.memory.used.avg",
+                                                    "type": "text"
+                                                }
+                                            ]
+                                        },
+                                        "type": "item"
+                                    },
+                                    {
+                                        "name": "Disk",
+                                        "options": {
+                                            "fields": [
+                                                {
+                                                    "name": "Disk Write IOPS (Max) | Unit: Counts",
+                                                    "key": "data.monitoring.disk.write_iops.max",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Disk Write IOPS (Avg) | Unit: Counts",
+                                                    "key": "data.monitoring.disk.write_iops.avg",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Disk Write Throughput (Max) | Unit: Bytes",
+                                                    "key": "data.monitoring.disk.write_throughput.max",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Disk Write Throughput (Avg) | Unit: Bytes",
+                                                    "key": "data.monitoring.disk.write_throughput.avg",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Disk Read IOPS (Max) | Unit: Counts",
+                                                    "key": "data.monitoring.disk.read_iops.max",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Disk Read IOPS (Avg) | Unit: Counts",
+                                                    "key": "data.monitoring.disk.read_iops.avg",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Disk Read Throughput (Max) | Unit: Bytes",
+                                                    "key": "data.monitoring.disk.read_throughput.max",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Disk Read Throughput (Avg) | Unit: Bytes",
+                                                    "key": "data.monitoring.disk.read_throughput.avg",
+                                                    "type": "text"
+                                                }
+                                            ]
+                                        },
+                                        "type": "item"
+                                    },
+                                    {
+                                        "name": "Network",
+                                        "options": {
+                                            "fields": [
+                                                {
+                                                    "name": "Network Received Throughput (Max) | Unit: Bytes",
+                                                    "key": "data.monitoring.network.received_throughput.max",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Network Received Throughput (Avg) | Unit: Bytes",
+                                                    "key": "data.monitoring.network.received_throughput.avg",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Network Received PPS (Max) | Unit: Counts",
+                                                    "key": "data.monitoring.network.received_pps.max",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Network Received PPS (Avg) | Unit: Counts",
+                                                    "key": "data.monitoring.network.received_pps.avg",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Network Sent Throughput (Max) | Unit: Bytes",
+                                                    "key": "data.monitoring.network.sent_throughput.max",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Network Sent Throughput (Avg) | Unit: Bytes",
+                                                    "key": "data.monitoring.network.sent_throughput.avg",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Network Sent PPS (Max) | Unit: Counts",
+                                                    "key": "data.monitoring.network.sent_pps.max",
+                                                    "type": "text"
+                                                },
+                                                {
+                                                    "name": "Network Sent PPS (Avg) | Unit: Counts",
+                                                    "key": "data.monitoring.network.sent_pps.avg",
+                                                    "type": "text"
+                                                }
+                                            ]
+                                        },
+                                        "type": "item"
+                                    }
+                                ]
+                            },
+                            "type": "list",
+                            "name": "Performance"
+                        }
+                    ]
+                }
+            }
+        }
 
     @staticmethod
     def _get_data_only(metric_data, state, server_id):

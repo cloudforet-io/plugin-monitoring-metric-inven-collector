@@ -1,5 +1,25 @@
 from schematics import Model
-from schematics.types import ListType, StringType, PolyModelType, DictType
+from schematics.types import ListType, StringType, PolyModelType, DictType, ModelType
+from spaceone.inventory.libs.schema.metadata.dynamic_layout import BaseLayoutField
+from spaceone.inventory.libs.schema.metadata.dynamic_search import BaseDynamicSearch
+
+
+class MetaDataViewSubData(Model):
+    layouts = ListType(PolyModelType(BaseLayoutField))
+
+
+class MetaDataViewTable(Model):
+    layout = PolyModelType(BaseLayoutField)
+
+
+class MetaDataView(Model):
+    table = PolyModelType(MetaDataViewTable, serialize_when_none=False)
+    sub_data = PolyModelType(MetaDataViewSubData, serialize_when_none=False)
+    search = ListType(PolyModelType(BaseDynamicSearch), serialize_when_none=False)
+
+
+class BaseMetaData(Model):
+    view = ModelType(MetaDataView)
 
 
 class BaseResponse(Model):
