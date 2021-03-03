@@ -21,8 +21,8 @@ class CollectorService(BaseService):
         super().__init__(metadata)
         self.metric_schema: MetricSchemaManager = MetricSchemaManager(resource_type='inventory.Server')
         self.execute_managers = [
-            'AWSManager',
             'AzureManager',
+            'AWSManager',
             'GoogleCloudManager',
         ]
 
