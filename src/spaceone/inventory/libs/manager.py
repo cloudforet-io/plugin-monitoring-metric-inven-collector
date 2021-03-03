@@ -189,19 +189,38 @@ class CollectorManager(BaseManager):
                                 if metric_value is not None:
                                     server_vo[key[0]][key[1]].update({state: round(metric_value, 1)})
 
-
                 monitoring_data = Server({'monitoring': Monitoring(server_vo, strict=False)}, strict=False)
 
                 if self._check_to_update(monitoring_data.to_primitive()):
-
-                    compute_vm_resource = ServerInstanceResource({
-                        'provider': provider,
-                        'cloud_service_group': server.get('cloud_service_group'),
-                        'cloud_service_type': server.get('cloud_service_type'),
-                        'data': monitoring_data,
-                        'reference': ReferenceModel(monitoring_data.reference(server.get('reference').get('resource_id')))
-                    }, strict=False)
-                    return_list.append(ServerInstanceResponse({'resource': compute_vm_resource}))
+                    if provider == 'aws':
+                        compute_vm_resource = ServerAwsInstanceResource({
+                            'provider': provider,
+                            'cloud_service_group': server.get('cloud_service_group'),
+                            'cloud_service_type': server.get('cloud_service_type'),
+                            'data': monitoring_data,
+                            'reference': ReferenceModel(monitoring_data.reference(server.get('reference').get('resource_id')))
+                        }, strict=False)
+                        return_list.append(ServerAwsInstanceResponse({'resource': compute_vm_resource}))
+                    elif provider == 'azure':
+                        compute_vm_resource = ServerAwsInstanceResource({
+                            'provider': provider,
+                            'cloud_service_group': server.get('cloud_service_group'),
+                            'cloud_service_type': server.get('cloud_service_type'),
+                            'data': monitoring_data,
+                            'reference': ReferenceModel(
+                                monitoring_data.reference(server.get('reference').get('resource_id')))
+                        }, strict=False)
+                        return_list.append(ServerAwsInstanceResponse({'resource': compute_vm_resource}))
+                    elif provider == 'google':
+                        compute_vm_resource = ServerAwsInstanceResource({
+                            'provider': provider,
+                            'cloud_service_group': server.get('cloud_service_group'),
+                            'cloud_service_type': server.get('cloud_service_type'),
+                            'data': monitoring_data,
+                            'reference': ReferenceModel(
+                                monitoring_data.reference(server.get('reference').get('resource_id')))
+                        }, strict=False)
+                        return_list.append(ServerAwsInstanceResponse({'resource': compute_vm_resource}))
 
         return return_list
 

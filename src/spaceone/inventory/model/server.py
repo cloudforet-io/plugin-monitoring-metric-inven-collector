@@ -2,7 +2,7 @@ import logging
 
 from schematics import Model
 from schematics.types import ModelType, StringType, ListType, DictType, UnionType, IntType, FloatType
-from spaceone.inventory.libs.schema.metadata.dynamic_field import TextDyField
+from spaceone.inventory.libs.schema.metadata.dynamic_field import TextDyField, SizeField
 from spaceone.inventory.libs.schema.metadata.dynamic_layout import ItemDynamicLayout, ListDynamicLayout
 from spaceone.inventory.libs.schema.cloud_service import CloudServiceResource, CloudServiceResponse, CloudServiceMeta
 
@@ -63,61 +63,93 @@ class Server(Model):
 
 
 cpu_details_meta = ItemDynamicLayout.set_fields('CPU', fields=[
-    TextDyField.data_source('CPU Utilization (Max) | Unit: %', 'data.monitoring.cpu.utilization.max'),
-    TextDyField.data_source('CPU Utilization (Avg) | Unit: %', 'data.monitoring.cpu.utilization.avg')
+    TextDyField.data_source('CPU Utilization (%) | Max', 'data.monitoring.cpu.utilization.max'),
+    TextDyField.data_source('CPU Utilization (%) | Avg', 'data.monitoring.cpu.utilization.avg')
 ])
 
 
 memory_details_meta = ItemDynamicLayout.set_fields('Memory', fields=[
-    TextDyField.data_source('Memory usage (Max) | Unit: %', 'data.monitoring.memory.usage.max'),
-    TextDyField.data_source('Memory usage (Avg) | Unit: %', 'data.monitoring.memory.usage.avg'),
-    TextDyField.data_source('Memory Total (Max) | Unit: %', 'data.monitoring.memory.total.max'),
-    TextDyField.data_source('Memory Total (Avg) | Unit: %', 'data.monitoring.memory.total.avg'),
-    TextDyField.data_source('Memory Used (Max) | Unit: %', 'data.monitoring.memory.used.max'),
-    TextDyField.data_source('Memory Used (Avg) | Unit: %', 'data.monitoring.memory.used.avg')
+    TextDyField.data_source('Memory usage (%) | Max', 'data.monitoring.memory.usage.max'),
+    TextDyField.data_source('Memory usage (%) | Avg', 'data.monitoring.memory.usage.avg'),
+    TextDyField.data_source('Memory Total | Max', 'data.monitoring.memory.total.max'),
+    TextDyField.data_source('Memory Total | Avg', 'data.monitoring.memory.total.avg'),
+    TextDyField.data_source('Memory Used  | Max', 'data.monitoring.memory.used.max'),
+    TextDyField.data_source('Memory Used  | Avg', 'data.monitoring.memory.used.avg')
 ])
 
 
 disk_details_meta = ItemDynamicLayout.set_fields('Disk', fields=[
-    TextDyField.data_source('Disk Write IOPS (Max) | Unit: Counts', 'data.monitoring.disk.write_iops.max'),
-    TextDyField.data_source('Disk Write IOPS (Avg) | Unit: Counts', 'data.monitoring.disk.write_iops.avg'),
-    TextDyField.data_source('Disk Write Throughput (Max) | Unit: Bytes', 'data.monitoring.disk.write_throughput.max'),
-    TextDyField.data_source('Disk Write Throughput (Avg) | Unit: Bytes', 'data.monitoring.disk.write_throughput.avg'),
-    TextDyField.data_source('Disk Read IOPS (Max) | Unit: Counts', 'data.monitoring.disk.read_iops.max'),
-    TextDyField.data_source('Disk Read IOPS (Avg) | Unit: Counts', 'data.monitoring.disk.read_iops.avg'),
-    TextDyField.data_source('Disk Read Throughput (Max) | Unit: Bytes', 'data.monitoring.disk.read_throughput.max'),
-    TextDyField.data_source('Disk Read Throughput (Avg) | Unit: Bytes', 'data.monitoring.disk.read_throughput.avg')
+    TextDyField.data_source('Disk Write IOPS | Max', 'data.monitoring.disk.write_iops.max'),
+    TextDyField.data_source('Disk Write IOPS | Avg', 'data.monitoring.disk.write_iops.avg'),
+    SizeField.data_source('Disk Write Throughput | Max', 'data.monitoring.disk.write_throughput.max'),
+    SizeField.data_source('Disk Write Throughput | Avg', 'data.monitoring.disk.write_throughput.avg'),
+    TextDyField.data_source('Disk Read IOPS | Max', 'data.monitoring.disk.read_iops.max'),
+    TextDyField.data_source('Disk Read IOPS | Avg', 'data.monitoring.disk.read_iops.avg'),
+    SizeField.data_source('Disk Read Throughput | Max', 'data.monitoring.disk.read_throughput.max'),
+    SizeField.data_source('Disk Read Throughput | Avg', 'data.monitoring.disk.read_throughput.avg')
 ])
 
 
 network_details_meta = ItemDynamicLayout.set_fields('Network', fields=[
-    TextDyField.data_source('Network Received Throughput (Max) | Unit: Bytes', 'data.monitoring.network.received_throughput.max'),
-    TextDyField.data_source('Network Received Throughput (Avg) | Unit: Bytes', 'data.monitoring.network.received_throughput.avg'),
-    TextDyField.data_source('Network Received PPS (Max) | Unit: Counts', 'data.monitoring.network.received_pps.max'),
-    TextDyField.data_source('Network Received PPS (Avg) | Unit: Counts', 'data.monitoring.network.received_pps.avg'),
-    TextDyField.data_source('Network Sent Throughput (Max) | Unit: Bytes', 'data.monitoring.network.sent_throughput.max'),
-    TextDyField.data_source('Network Sent Throughput (Avg) | Unit: Bytes', 'data.monitoring.network.sent_throughput.avg'),
-    TextDyField.data_source('Network Sent PPS (Max) | Unit: Counts', 'data.monitoring.network.sent_pps.max'),
-    TextDyField.data_source('Network Sent PPS (Avg) | Unit: Counts', 'data.monitoring.network.sent_pps.avg')
+    SizeField.data_source('Network Received Throughput | Max', 'data.monitoring.network.received_throughput.max'),
+    SizeField.data_source('Network Received Throughput | Avg', 'data.monitoring.network.received_throughput.avg'),
+    TextDyField.data_source('Network Received PPS | Max', 'data.monitoring.network.received_pps.max'),
+    TextDyField.data_source('Network Received PPS | Avg', 'data.monitoring.network.received_pps.avg'),
+    SizeField.data_source('Network Sent Throughput | Max', 'data.monitoring.network.sent_throughput.max'),
+    SizeField.data_source('Network Sent Throughput | Avg', 'data.monitoring.network.sent_throughput.avg'),
+    TextDyField.data_source('Network Sent PPS | Max', 'data.monitoring.network.sent_pps.max'),
+    TextDyField.data_source('Network Sent PPS | Avg', 'data.monitoring.network.sent_pps.avg')
 ])
 
-performance_details = ListDynamicLayout.set_layouts('Performance', layouts=[cpu_details_meta,
+performance_form_1_details = ListDynamicLayout.set_layouts('Performance', layouts=[cpu_details_meta,
+                                                                            disk_details_meta,
+                                                                            network_details_meta])
+
+performance_form_2_details = ListDynamicLayout.set_layouts('Performance', layouts=[cpu_details_meta,
                                                                             memory_details_meta,
                                                                             disk_details_meta,
                                                                             network_details_meta])
 
-server_basic_meta = CloudServiceMeta.set_layouts([performance_details])
 
 
-class ServerInstanceResource(CloudServiceResource):
+server_basic_aws_meta = CloudServiceMeta.set_layouts([performance_form_1_details])
+server_basic_azure_meta = CloudServiceMeta.set_layouts([performance_form_1_details])
+server_basic_google_meta = CloudServiceMeta.set_layouts([performance_form_2_details])
+
+
+class ServerAwsInstanceResource(CloudServiceResource):
     provider = StringType(default='aws')
     cloud_service_group = StringType(default='ComputeEngine')
     cloud_service_type = StringType(default='Instance')
     data = ModelType(Server)
-    _metadata = ModelType(CloudServiceMeta, default=server_basic_meta, serialized_name='metadata')
+    _metadata = ModelType(CloudServiceMeta, default=server_basic_aws_meta, serialized_name='metadata')
+
+class ServerAzureInstanceResource(CloudServiceResource):
+    provider = StringType(default='aws')
+    cloud_service_group = StringType(default='ComputeEngine')
+    cloud_service_type = StringType(default='Instance')
+    data = ModelType(Server)
+    _metadata = ModelType(CloudServiceMeta, default=server_basic_azure_meta, serialized_name='metadata')
+
+class ServerGoogleInstanceResource(CloudServiceResource):
+    provider = StringType(default='aws')
+    cloud_service_group = StringType(default='ComputeEngine')
+    cloud_service_type = StringType(default='Instance')
+    data = ModelType(Server)
+    _metadata = ModelType(CloudServiceMeta, default=server_basic_google_meta, serialized_name='metadata')
 
 
-class ServerInstanceResponse(CloudServiceResponse):
+class ServerAwsInstanceResponse(CloudServiceResponse):
     match_rules = DictType(ListType(StringType), default={'1': ['reference.resource_id']})
     resource_type = StringType(default='inventory.Server')
-    resource = ModelType(ServerInstanceResource)
+    resource = ModelType(ServerAwsInstanceResource)
+
+class ServerAzureInstanceResponse(CloudServiceResponse):
+    match_rules = DictType(ListType(StringType), default={'1': ['reference.resource_id']})
+    resource_type = StringType(default='inventory.Server')
+    resource = ModelType(ServerAzureInstanceResource)
+
+class ServerGoogleInstanceResponse(CloudServiceResponse):
+    match_rules = DictType(ListType(StringType), default={'1': ['reference.resource_id']})
+    resource_type = StringType(default='inventory.Server')
+    resource = ModelType(ServerGoogleInstanceResource)
