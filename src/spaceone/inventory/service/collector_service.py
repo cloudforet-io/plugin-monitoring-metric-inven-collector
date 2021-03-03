@@ -22,8 +22,8 @@ class CollectorService(BaseService):
         self.metric_schema: MetricSchemaManager = MetricSchemaManager(resource_type='inventory.Server')
         self.execute_managers = [
             'AzureManager',
-            # 'AWSManager',
-            # 'GoogleCloudManager',
+            'AWSManager',
+            'GoogleCloudManager',
         ]
 
     @check_required(['options'])
