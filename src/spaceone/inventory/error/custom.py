@@ -22,7 +22,7 @@ class ERROR_ATHENTICATION_VERIFY(ERROR_BASE):
     message = 'Connection failed. Please check your authentication information.'
 
 class ERROR_NOT_SUPPORT_STAT(ERROR_INVALID_ARGUMENT):
-    message = 'collector stat is invalid. (supported_stat = {supported_stat})'
+    _message = 'collector stat is invalid. (supported_stat = {supported_stat})'
 
 class ERROR_NOT_SUPPORT_METRIC_FORMAT(ERROR_INVALID_ARGUMENT):
-    message = 'metric format is invalid. (metric_format = {metric_format})'
+    _message = 'metric format is invalid. (metric_format = {metric_format})'
