@@ -1,12 +1,14 @@
 __all__ = ['MonitoringManager']
 
 import logging
+from spaceone.core import utils
 from spaceone.core.error import *
 from spaceone.core.manager import BaseManager
-from spaceone.core.auth.jwt import JWTUtil
+from datetime import datetime
 from spaceone.core.transaction import Transaction, ERROR_AUTHENTICATE_FAILURE
 from spaceone.inventory.connector.monitoring_connector import MonitoringConnector
 from pprint import pprint
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -56,8 +58,8 @@ class MonitoringManager(BaseManager):
             'resource_type': resource_type,
             'resources': metric_resources,
             'metric': metric,
-            'start': start,
-            'end': end,
+            'start': utils.datetime_to_iso8601(start),
+            'end': utils.datetime_to_iso8601(end),
         }
         if period:
             param.update({'period': period})
