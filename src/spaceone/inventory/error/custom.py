@@ -9,6 +9,9 @@ class ERROR_DRIVER(ERROR_BASE):
     status_code = 'INTERNAL'
     message = '{message}'
 
+class ERROR_NOT_FOUND_API_KEY(ERROR_BASE):
+    message = 'Not found api_key. (api_key = {api_key})'
+
 
 class ERROR_NOT_INITIALIZED_EXCEPTION(ERROR_BASE):
     status_code = 'INTERNAL'
