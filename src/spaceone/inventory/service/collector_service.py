@@ -3,7 +3,7 @@ import logging
 import json
 import concurrent.futures
 from spaceone.core.service import *
-from pprint import pprint
+from spaceone.inventory.error.custom import *
 from spaceone.inventory.libs.schema.metric_schema import MetricSchemaManager
 from spaceone.inventory.manager.monitoring.identity_manager import IdentityManager
 from spaceone.inventory.manager.monitoring.inventory_manager import InventoryManager
@@ -69,10 +69,15 @@ class CollectorService(BaseService):
         params.update({'metric_schema': self.get_metric_info()})
 
         secret_data = params.get('secret_data')
+        api_key_from_secret_data = secret_data.get('api_key')
+
+        if api_key_from_secret_data is None:
+            raise ERROR_NOT_FOUND_API_KEY(api_key=api_key_from_secret_data)
+
         svc_endpoint, domain_id = self._get_end_points(secret_data)
         collector_resource = {'end_point_list': svc_endpoint,
                               'domain_id': domain_id,
-                              'api_key': secret_data.get('api_key')}
+                              'api_key': api_key_from_secret_data.replace(" ", "")}
 
         inventory_manager, monitoring_manager = self._get_managers(collector_resource)
         data_source_info = self.get_data_source(monitoring_manager)
