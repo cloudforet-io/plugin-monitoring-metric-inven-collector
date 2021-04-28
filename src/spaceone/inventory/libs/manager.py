@@ -187,7 +187,11 @@ class CollectorManager(BaseManager):
                                 metric_value = self._get_data_only(resources, state, server_id)
 
                                 if metric_value is not None:
-                                    server_vo[key[0]][key[1]].update({state: round(metric_value, 1)})
+                                    _metric_value_revised = float(metric_value) if isinstance(metric_value, str) else metric_value
+                                    try:
+                                        server_vo[key[0]][key[1]].update({state: round(_metric_value_revised, 1)})
+                                    except Exception as e:
+                                        raise e
 
                 if provider == 'google_cloud':
                     updated_memory = self._set_memory_usage(server_vo)
