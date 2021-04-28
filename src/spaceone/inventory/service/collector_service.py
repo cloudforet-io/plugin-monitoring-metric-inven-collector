@@ -1,7 +1,6 @@
 import time
 import logging
-import json
-import concurrent.futures
+import traceback
 from spaceone.core.service import *
 from spaceone.inventory.error.custom import *
 from spaceone.inventory.libs.schema.metric_schema import MetricSchemaManager
@@ -10,8 +9,13 @@ from spaceone.inventory.manager.monitoring.inventory_manager import InventoryMan
 from spaceone.inventory.manager.monitoring.monitoring_manager import MonitoringManager
 
 _LOGGER = logging.getLogger(__name__)
-MAX_WORKER = 30
 SUPPORTED_RESOURCE_TYPE = ['inventory.Server', 'inventory.CloudService']
+# flag that checks if get_connection based on region
+PROVIDER_REGION_FILTER = {
+    'aws': True,
+    'google_cloud': False,
+    'azure': False,
+}
 FILTER_FORMAT = []
 
 
@@ -74,7 +78,12 @@ class CollectorService(BaseService):
         if api_key_from_secret_data is None:
             raise ERROR_NOT_FOUND_API_KEY(api_key=api_key_from_secret_data)
 
-        svc_endpoint, domain_id = self._get_end_points(secret_data)
+        try:
+            svc_endpoint, domain_id = self._get_end_points(secret_data)
+        except Exception as e:
+            _LOGGER.error(f'[Error] get_end_point of domain: ({domain_id}): {str(e)}', extra={'traceback': traceback.format_exc()})
+            raise ERROR_API_KEY(api_key=api_key_from_secret_data)
+
         collector_resource = {'end_point_list': svc_endpoint,
                               'domain_id': domain_id,
                               'api_key': api_key_from_secret_data.replace(" ", "")}
@@ -86,30 +95,17 @@ class CollectorService(BaseService):
                                    'data_source_info': data_source_info
                                    })
 
-        all_servers_list = inventory_manager.list_servers(None)
+        all_server_list = inventory_manager.list_servers(None)
+        _providers, _server_ids, _servers, _accounts = self._get_resource_server_params(all_server_list)
 
-        # filter_out that doesn't need at all.
-        # providers, server_ids, servers = self._get_metric_ids_per_provider(all_servers_list)
-        # filtered_list = self.get_only_valid_resources(providers, servers, server_ids,
-        #                                               'inventory.Server',
-        #                                               data_source_info,
-        #                                               monitoring_manager)
-
-        _providers, _server_ids, _servers, _accounts = self._get_resource_params_per_provider_and_account(
-            all_servers_list)
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKER) as executor:
-            future_executors = []
-            for execute_manager in self.execute_managers:
-                print(f'@@@ {execute_manager} @@@ \n')
-                _manager = self.locator.get_manager(execute_manager, secret_data=collector_resource)
-                if _manager.provider in _providers:
-                    params.update({'server_ids': _server_ids, 'servers': _servers, 'accounts': _accounts})
-                    future_executors.append(executor.submit(_manager.collect_resources, params))
-
-            for future in concurrent.futures.as_completed(future_executors):
-                for result in future.result():
-                    yield result.to_primitive()
+        for execute_manager in self.execute_managers:
+            print(f'@@@ {execute_manager} @@@ \n')
+            executing_manager = self.locator.get_manager(execute_manager, secret_data=collector_resource)
+            if executing_manager.provider in _providers:
+                params.update({'server_ids': _server_ids, 'servers': _servers, 'accounts': _accounts})
+                get_metric_date_executed = executing_manager.collect_resources(params)
+                for metric_data in get_metric_date_executed:
+                    yield metric_data.to_primitive()
 
         print(f'TOTAL TIME : {time.time() - start_time} Seconds')
 
@@ -170,16 +166,18 @@ class CollectorService(BaseService):
         return providers, provider_vo, servers_vo
 
     @staticmethod
-    def _get_resource_params_per_provider_and_account(servers):
-
+    def _get_resource_server_params(servers):
         providers = []
         account_vo = {}
         server_id_vo = {}
         servers_vo = {}
 
         for server in servers:
-            account = server.get('data', {}).get('compute', {}).get('account')
+            _account = server.get('data', {}).get('compute', {}).get('account')
             provider = server.get('provider')
+            region_code = server.get('region_code')
+
+            account = _account + '_' + region_code if PROVIDER_REGION_FILTER.get(provider) else _account
 
             if provider in providers:
                 if account in server_id_vo.get(provider):
@@ -188,25 +186,13 @@ class CollectorService(BaseService):
                 else:
                     if account not in account_vo.get(provider):
                         account_vo.get(provider).append(account)
-                    server_id_vo.get(provider).update({
-                        account: [server.get('server_id')]}
-                    )
-                    servers_vo.get(provider).update({
-                        account: [server]}
-                    )
+                    server_id_vo.get(provider).update({account: [server.get('server_id')]})
+                    servers_vo.get(provider).update({account: [server]})
             else:
                 providers.append(provider)
                 account_vo.update({provider: [account]})
-                server_id_vo.update({
-                    provider: {
-                        account: [server.get('server_id')]
-                    }
-                })
-                servers_vo.update({
-                    provider: {
-                        account: [server]
-                    }
-                })
+                server_id_vo.update({provider: {account: [server.get('server_id')]}})
+                servers_vo.update({provider: {account: [server]}})
 
         return providers, server_id_vo, servers_vo, account_vo
 
