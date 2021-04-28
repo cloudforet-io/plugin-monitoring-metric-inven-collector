@@ -7,7 +7,7 @@ from spaceone.inventory.libs.manager import CollectorManager
 from pprint import pprint
 
 _LOGGER = logging.getLogger(__name__)
-MAX_WORKER = 20
+NUM_MAX_INSTANCE = 200
 
 
 class AzureManager(CollectorManager):
@@ -23,21 +23,19 @@ class AzureManager(CollectorManager):
             azure_servers = params.get('servers').get(self.provider)
             azure_accounts = params.get('accounts').get(self.provider)
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKER) as executor:
-                future_executors = []
-                for account in azure_accounts:
-                    print(f'@@@ Processing Azure account : {account} @@@ \n')
-                    _params = params.copy()
-                    _params.update({
-                        'server_ids': azure_server_ids.get(account, []),
-                        'servers': azure_servers.get(account, []),
-                        'account': account,
-                    })
-                    future_executors.append(executor.submit(self.collect_azure_monitoring_dt_per_accounts, _params))
+            for account in azure_accounts:
+                print(f'@@@ Processing Azure account : {account} @@@ \n')
+                _params = params.copy()
+                _params.update({
+                    'server_ids': azure_server_ids.get(account, []),
+                    'servers': azure_servers.get(account, []),
+                    'account': account,
+                })
 
-                for future in concurrent.futures.as_completed(future_executors):
-                    for result in future.result():
-                        yield result
+                results = self.collect_azure_monitoring_dt_per_accounts(_params)
+
+                for result in results:
+                    yield result
 
         except Exception as e:
             print(f'[ERROR: {e}]')
@@ -47,24 +45,23 @@ class AzureManager(CollectorManager):
 
     def collect_azure_monitoring_dt_per_accounts(self, params):
         _account = params.get('account')
-        server_id_group = self.get_divided_into_max_count(MAX_WORKER, params.get('server_ids'))
-        servers = self.get_divided_into_max_count(MAX_WORKER, params.get('servers'))
+        server_id_group = self.get_divided_into_max_count(NUM_MAX_INSTANCE, params.get('server_ids'))
+        servers = self.get_divided_into_max_count(NUM_MAX_INSTANCE, params.get('servers'))
         _total_length = self._get_total_length(server_id_group)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKER) as executor:
-            future_executors = []
-            for idx, server_ids in enumerate(server_id_group, start=0):
-                print(f"@@@ Processing Azure account:{_account}  {len(server_ids)}/{_total_length} @@@ \n")
-                _params = params.copy()
-                _params.update({
-                    'server_ids': server_ids,
-                    'servers': servers[idx],
-                })
-                future_executors.append(executor.submit(self.collect_azure_monitoring_per_ids, _params))
+        for idx, server_ids in enumerate(server_id_group, start=0):
+            print(f'No. {idx + 1}\'s: Azure IDs')
+            pprint(server_ids)
+            print()
 
-            for future in concurrent.futures.as_completed(future_executors):
-                for result in future.result():
-                    yield result
+            print(f"@@@ Processing Azure account:{_account}  {len(server_ids)}/{_total_length} @@@ \n")
+            _params = params.copy()
+            _params.update({'server_ids': server_ids,'servers': servers[idx]})
+
+            results = self.collect_azure_monitoring_per_ids(_params)
+
+            for result in results:
+                yield result
 
 
     def collect_azure_monitoring_per_ids(self, params):

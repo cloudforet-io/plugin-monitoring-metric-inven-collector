@@ -60,24 +60,17 @@ class InventoryManager(BaseManager):
 
     @staticmethod
     def _get_server_query(provider):
-        # 'server-6fedbc46ad87' 'server-b65aa5624984',
         query = {
-            # 'page': {'limit': 1},
-            # "filter": [{
-            #     "k": 'server_id',
-            #     "v": ['server-320e08504ecb', 'server-1bd57c9c001f', 'server-fbeb5e2c28c2','server-7de654735a9a', 'server-727e1d3d6feb'],
-            #     "o": "in"
-            # }],
             "only": [
                 "server_id",
                 "provider",
+                "region_code",
                 "data.compute.account",
                 "reference.resource_id",
                 "cloud_service_group",
                 "cloud_service_type"
             ]
         }
-
         if provider:
             query.update({
                 "filter": [{
@@ -86,7 +79,6 @@ class InventoryManager(BaseManager):
                     "o": "eq"
                 }]
             })
-
         return query
 
     @staticmethod
