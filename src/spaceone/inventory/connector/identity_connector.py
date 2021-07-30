@@ -33,6 +33,7 @@ class IdentityConnector(BaseConnector):
 
     def get_end_points(self, domain_id):
         response = self.client.Endpoint.list({
+            'endpoint_type': 'internal',
             'domain_id': domain_id
         }, metadata=self.transaction.get_connection_meta())
         return self._change_message(response)
