@@ -6,6 +6,9 @@ from datetime import datetime, timedelta
 from spaceone.inventory.error.custom import *
 from spaceone.inventory.model.server import *
 from spaceone.inventory.libs.schema.base import ReferenceModel
+from spaceone.inventory.manager.identity_manager import IdentityManager
+from spaceone.inventory.manager.inventory_manager import InventoryManager
+from spaceone.inventory.manager.monitoring_manager import MonitoringManager
 from pprint import pprint
 
 _LOGGER = logging.getLogger(__name__)
@@ -18,95 +21,135 @@ MAX_DIVIDING_COUNT = 20
 class CollectorManager(BaseManager):
     provider = None
 
-    def __init__(self, **kwargs):
-        super().__init__(transaction=None, config=None)
-        secret_data = kwargs.get('secret_data')
-        self.data_source = secret_data.get('data_source_info')
-        self.end = None
-        self.start = None
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.identity_mgr = self.locator.get_manager('IdentityManager')
+        self.inventory_mgr = self.locator.get_manager('InventoryManager')
+        self.monitoring_mgr = self.locator.get_manager('MonitoringManager')
+        self.set_time(1)
 
+    def collect_resources(self, identity_endpoint, endpoint_type, metric_schema, domain_id) -> list:
         try:
-            self.max_worker = MAX_WORKER
-            self.inventory_manager = secret_data.get('inventory_manager')
-            self.monitoring_manager = secret_data.get('monitoring_manager')
-            self.domain_id = secret_data.get('domain_id')
-            self.set_time(1)
+            self._update_endpoints(identity_endpoint, endpoint_type, domain_id)
+
+            # find data source
+            # WARNING: we assume, there is one proper data_source per provider
+            data_source_ids = self._get_data_sources(self.provider, domain_id)
+            if len(data_source_ids) == 0:
+                _LOGGER.debug(f'There is no data-source, skip this provider: {self.provider}')
+                return []
+
+            _LOGGER.debug(f'[collect_resources] provider: {self.provider}, data_source_id: {data_source_ids}')
+
+            for data_source_id in data_source_ids:
+                # get metric
+                # Assgin each class,
+                # since how to efficiently collect data depends on provider
+                return self.collect_metric_data(data_source_id, metric_schema, domain_id)
 
         except Exception as e:
-            print()
-            raise ERROR_UNKNOWN(message=e)
+            _LOGGER.error(e)
+            return []
 
-    def verify(self, secret_data, region_name):
-        """
-            Check connection
-        """
-        return ''
-
-    def collect_monitoring_data(self, params) -> list:
+    def collect_metric_data(self, data_source_id, metric_schema, domain_id) -> list:
         raise NotImplemented
 
-    def collect_resources(self, params) -> list:
+    def _update_endpoints(self, identity_endpoint, endpoint_type, domain_id):
+        """ update endpoints of
+        - inventory
+        - monitoring
+        """
+        endpoints = self.identity_mgr.get_endpoints(identity_endpoint, endpoint_type, domain_id)
+        for endpoint in endpoints:
+            if endpoint['service'] == 'inventory':
+                self.inventory_mgr.init_endpoint(endpoint['endpoint'])
+                _LOGGER.debug(f'init inventory endpoint: {endpoint}')
+            elif  endpoint['service'] == 'monitoring':
+                self.monitoring_mgr.init_endpoint(endpoint['endpoint'])
+                _LOGGER.debug(f'init monitoring endpoint: {endpoint}')
 
-        return self.collect_monitoring_data(params)
+    def _get_data_sources(self, provider, domain_id):
+        """ Find data source by provider
+        """
+        data_sources = self.monitoring_mgr.get_data_source(provider, domain_id)
+        result = []
+        for data_source in data_sources:
+            result.append(data_source['data_source_id'])
+        return result
 
     def set_time(self, interval_options: int):
         self.end = datetime.utcnow()
         self.start = self.end - timedelta(days=interval_options)
 
-    def list_metrics(self, provider, resource_type, server_ids):
-        data_source = self.get_data_source_info_by_provider(provider)
-        metric_list = self.monitoring_manager.get_metric_list(data_source.get('data_source_id'),
-                                                              resource_type,
-                                                              server_ids)
+#    def list_metrics(self, provider, resource_type, server_ids):
+#        data_source = self.get_data_source_info_by_provider(provider)
+#        metric_list = self.monitoring_manager.get_metric_list(data_source.get('data_source_id'),
+#                                                              resource_type,
+#                                                              server_ids)
+#
+#        return metric_list
 
-        return metric_list
 
-    def get_data_source_info_by_provider(self, provider):
-        data_source = self.data_source.get(provider, [])
-        return data_source[0] if len(data_source) > 0 else None
-
-    def get_servers_metric_data(self, metric_info_vo, provider, server_ids, start, end):
+    def get_servers_metric_data(self, metric_infos, provider, data_source_id, server_ids, start, end, domain_id):
         server_monitoring_vo = {}
-        metric_info = metric_info_vo.get('json')
-        metric_keys = metric_info_vo.get('key')
-        data_source = self.get_data_source_info_by_provider(provider)
 
-        if data_source:
-            for collect_item in metric_keys:
-                dict_key = collect_item.split('.')
+        metric_info = metric_infos['json']
+        metric_keys = metric_infos['key']
 
-                if dict_key[0] not in server_monitoring_vo:
-                    server_monitoring_vo.update({dict_key[0]: {}})
+        """
+        metric_info:
+        {'cpu': {'utilization': {'aws': [{'metric': 'CPUUtilization', 'resource_type': 'inventory.Server'}],
+                                'google_cloud': [{'metric': 'compute.googleapis.com/instance/cpu/utilization',
+                                            'resource_type': 'inventory.Server'}],
+                                'azure': [{'metric': 'Percentage CPU', 'resource_type': 'inventory.Server'}]}}
+        ...
 
-                if provider in metric_info[dict_key[0]][dict_key[1]]:
-                    for provider_metric in metric_info[dict_key[0]][dict_key[1]][provider]:
+        metric_keys:
+        ['cpu.utilization', 'memory.usage', 'memory.total', 'memory.used',
+        'disk.write_iops', 'disk.write_throughput', 'disk.read_iops', 'disk.read_throughput',
+        'network.received_throughput', 'network.received_pps', 'network.sent_throughput', 'network.sent_pps']
+        """
+        for collect_item in metric_keys:
+            temp = collect_item.split('.')
+            mon_type = temp[0]      # ex. cpu
+            mon_label = temp[1]     # ex. utilization
+            if mon_type not in server_monitoring_vo:
+                server_monitoring_vo.update({mon_type: {}})
 
-                        # metric_data contains metric data via index
-                        # 0: max (Max)
-                        # 1: avg (Average or Mean)
+            if provider in metric_info[mon_type][mon_label]:
+                for provider_metric in metric_info[mon_type][mon_label][provider]:
+                    # ex: [{'metric': 'CPUUtilization', 'resource_type': 'inventory.Server'}]
+                    # metric_data contains metric data via index
+                    # 0: max (Max)
+                    # 1: avg (Average or Mean)
 
-                        metric_data = [{}, {}]
+                    metric_data = [{}, {}]
 
-                        if provider_metric.get('metric') != '':
-                            param = self._get_metric_param(provider,
-                                                           data_source.get('data_source_id'),
-                                                           'inventory.Server',
-                                                           server_ids,
-                                                           provider_metric.get('metric'),
-                                                           start,
-                                                           end)
+                    if provider_metric.get('metric') != '':
+                        param = self._get_metric_param(provider,
+                                                       data_source_id,
+                                                       'inventory.Server',
+                                                       server_ids,
+                                                       provider_metric.get('metric'),
+                                                       start,
+                                                       end)
 
-                            metric_data[0] = self.get_metric_data(param)
-                            param.update({'stat_flag': 'avg'})
-                            metric_data[1] = self.get_metric_data(param)
+                        metric_data[0] = self.get_metric_data(param, domain_id)
+                        param.update({'stat_flag': 'avg'})
+                        metric_data[1] = self.get_metric_data(param, domain_id)
 
-                            vo = server_monitoring_vo[dict_key[0]].get(dict_key[1])
-                            server_monitoring_vo[dict_key[0]].update(
-                                {dict_key[1]: self.get_collect_data_per_state(metric_data, server_ids, vo)})
-
+                        vo = server_monitoring_vo[mon_type].get(mon_label)
+                        server_monitoring_vo[mon_type].update(
+                            {mon_label: self.get_collect_data_per_state(metric_data, server_ids, vo)})
+        """
+        {'cpu': {'utilization': {'max': {'labels': ['2022-04-26T16:27:00.000Z'],
+                'resource_values': {'server-b1dec2d5a73c': [23.95079835994533],
+                                    'server-17f2480b4805': [82.48675132486751],
+                                    'server-bfba4b29ce3a': [82.04166666666666],
+        """
         return server_monitoring_vo
 
-    def get_metric_data(self, params):
+    def get_metric_data(self, params, domain_id):
         stat_flag = 'MAX'
 
         stat_interval = params.get('stat_interval') if params.get('stat_interval') is not None else DEFAULT_INTERVAL
@@ -114,12 +157,13 @@ class CollectorManager(BaseManager):
         if params.get('stat_flag') == 'avg':
             stat_flag = 'AVERAGE' if params.get('provider') == 'aws' else 'MEAN'
 
-        monitoring_data = self.monitoring_manager.get_metric_data(params.get('data_source_id'),
+        monitoring_data = self.monitoring_mgr.get_metric_data(params.get('data_source_id'),
                                                                   params.get('source_type'),
                                                                   params.get('server_ids'),
                                                                   params.get('metric'),
                                                                   params.get('start'),
                                                                   params.get('end'),
+                                                                  domain_id,
                                                                   stat_interval,
                                                                   stat_flag)
 
@@ -161,22 +205,24 @@ class CollectorManager(BaseManager):
         for server in servers:
             server_vo = {}
 
+
             provider = server.get('provider')
             server_id = server.get('server_id')
 
             if collected_data != {}:
                 for metric_key in metric_keys:
                     key = metric_key.split('.')
-
-                    if key[0] not in server_vo and key[0] in collected_data:
-                        server_vo.update({key[0]: {}})
+                    mon_type = key[0]      # ex. cpu
+                    mon_label = key[1]     # ex. utilization
+                    if mon_type not in server_vo and mon_type in collected_data:
+                        server_vo.update({mon_type: {}})
 
                     for state in COLLECTIVE_STATE:
-                        if key[1] not in server_vo[key[0]] and key[1] in collected_data[key[0]]:
-                            server_vo[key[0]].update({key[1]: {}})
+                        if mon_label not in server_vo[mon_type] and mon_label in collected_data[mon_type]:
+                            server_vo[mon_type].update({mon_label: {}})
 
-                        if key[0] in collected_data and key[1] in collected_data[key[0]]:
-                            resources = collected_data[key[0]][key[1]]
+                        if mon_type in collected_data and mon_label in collected_data[mon_type]:
+                            resources = collected_data[mon_type][mon_label]
 
                             if state in resources:
                                 # If perfer to deliver raw data from monitoring.
@@ -189,7 +235,7 @@ class CollectorManager(BaseManager):
                                 if metric_value is not None:
                                     _metric_value_revised = float(metric_value) if isinstance(metric_value, str) else metric_value
                                     try:
-                                        server_vo[key[0]][key[1]].update({state: round(_metric_value_revised, 1)})
+                                        server_vo[mon_type][mon_label].update({state: round(_metric_value_revised, 1)})
                                     except Exception as e:
                                         raise e
 
@@ -303,43 +349,43 @@ class CollectorManager(BaseManager):
 
         return metric_monitoring_data
 
-    @staticmethod
-    def _get_only_available_ids(available_resources, server_ids):
-        _available_resources = []
-        if server_ids:
-            if isinstance(server_ids, list):
-                for server_id in server_ids:
-                    if available_resources.get(server_id):
-                        _available_resources.append(server_id)
-            else:
-                if available_resources.get(server_ids):
-                    _available_resources.append(server_ids)
-
-        return _available_resources
-
-    @staticmethod
-    def get_divided_into_max_count(max_count, divide_targets):
-        return_arr = []
-        for idx, target in enumerate(divide_targets, start=0):
-            return_arr_idx = len(return_arr) - 1
-            if return_arr_idx < 0:
-                return_arr.append([target])
-            else:
-                current_target_length = len(return_arr[return_arr_idx])
-                if current_target_length < max_count:
-                    return_arr[return_arr_idx].append(target)
-                else:
-                    return_arr.append([target])
-        return return_arr
-
-    @staticmethod
-    def _get_total_length(server_ids):
-        length = 0
-        for server_id in server_ids:
-            length = length + len(server_id)
-
-        return length
-
+#    @staticmethod
+#    def _get_only_available_ids(available_resources, server_ids):
+#        _available_resources = []
+#        if server_ids:
+#            if isinstance(server_ids, list):
+#                for server_id in server_ids:
+#                    if available_resources.get(server_id):
+#                        _available_resources.append(server_id)
+#            else:
+#                if available_resources.get(server_ids):
+#                    _available_resources.append(server_ids)
+#
+#        return _available_resources
+#
+#    @staticmethod
+#    def get_divided_into_max_count(max_count, divide_targets):
+#        return_arr = []
+#        for idx, target in enumerate(divide_targets, start=0):
+#            return_arr_idx = len(return_arr) - 1
+#            if return_arr_idx < 0:
+#                return_arr.append([target])
+#            else:
+#                current_target_length = len(return_arr[return_arr_idx])
+#                if current_target_length < max_count:
+#                    return_arr[return_arr_idx].append(target)
+#                else:
+#                    return_arr.append([target])
+#        return return_arr
+#
+#    @staticmethod
+#    def _get_total_length(server_ids):
+#        length = 0
+#        for server_id in server_ids:
+#            length = length + len(server_id)
+#
+#        return length
+#
     @staticmethod
     def _check_to_update(monitoring_data):
         return True if monitoring_data.get('monitoring', {}) != {} else False

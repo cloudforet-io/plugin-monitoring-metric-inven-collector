@@ -15,48 +15,40 @@ _LOGGER = logging.getLogger(__name__)
 
 class MonitoringManager(BaseManager):
 
-    def __init__(self, **kwargs):
-        super().__init__(transaction=None, config=None)
-        secret_data = kwargs.get('secret_data')
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        try:
-            transaction = self._get_transaction(secret_data)
-            self.connector = MonitoringConnector(transaction, self._get_config(secret_data, 'monitoring'))
-            self.domain_id = secret_data.get('domain_id')
+    def init_endpoint(self, endpoint):
+        # create client with endpoint
+        self.connector = self.locator.get_connector('MonitoringConnector', endpoint=endpoint)
 
-        except Exception as e:
-            print()
-            raise ERROR_UNKNOWN(message=e)
-
-    def list_data_source(self):
+    def get_data_source(self, provider, domain_id):
         query = self._get_data_source_query()
-        data_sources = self.connector.list_data_source(query, self.domain_id)
+        data_sources = self.connector.list_data_source(provider, query, domain_id)
         data_source_list = data_sources.get('results', [])
         return data_source_list
 
-    def get_metric_list(self, data_source_id, resource_type, resources):
-        _resource = resources if isinstance(resources, list) else [resources]
+    def get_metric_list(self, data_source_id, resource_type, resources, domain_id):
         param = {
             'data_source_id': data_source_id,
             'resource_type': resource_type,
-            'resources': _resource
+            'resources': resources
         }
-        metrics = self.connector.metric_list(param, self.domain_id)
+        metrics = self.connector.metric_list(param, domain_id)
         return metrics
 
-    def get_metric_data(self, data_source_id, resource_type, resource, metric, start, end, period, stat):
+    def get_metric_data(self, data_source_id, resource_type, resources, metric, start, end, domain_id, period, stat):
 
-        metrics = {'domain_id': self.domain_id,
+        metrics = {'domain_id': domain_id,
                    'labels': [],
                    'resource_values': {}
                    }
 
-        metric_resources = [resource] if isinstance(resource, str) else resource
 
         param = {
             'data_source_id': data_source_id,
             'resource_type': resource_type,
-            'resources': metric_resources,
+            'resources': resources,
             'metric': metric,
             'start': utils.datetime_to_iso8601(start),
             'end': utils.datetime_to_iso8601(end),
@@ -68,7 +60,7 @@ class MonitoringManager(BaseManager):
             param.update({'stat': stat})
 
         try:
-            metrics = self.connector.metric_get_data(param, self.domain_id)
+            metrics = self.connector.metric_get_data(param, domain_id)
         except Exception as e:
 
             print('##################################')

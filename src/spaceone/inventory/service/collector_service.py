@@ -1,14 +1,21 @@
 import time
 import logging
 import traceback
-from spaceone.core.service import *
-from spaceone.inventory.error.custom import *
+from spaceone.core.transaction import Transaction
+from spaceone.core.service import authentication_handler
+from spaceone.core.service import check_required
+from spaceone.core.service import transaction
+from spaceone.core.service import BaseService
+from spaceone.core.auth.jwt import JWTUtil
+from spaceone.core.transaction import ERROR_AUTHENTICATE_FAILURE
 from spaceone.inventory.libs.schema.metric_schema import MetricSchemaManager
-from spaceone.inventory.manager.monitoring.identity_manager import IdentityManager
-from spaceone.inventory.manager.monitoring.inventory_manager import InventoryManager
-from spaceone.inventory.manager.monitoring.monitoring_manager import MonitoringManager
+#from spaceone.inventory.manager.monitoring.identity_manager import IdentityManager
+#from spaceone.inventory.manager.monitoring.inventory_manager import InventoryManager
+#from spaceone.inventory.manager.monitoring.monitoring_manager import MonitoringManager
+from spaceone.inventory.manager.monitoring.aws_manager import AWSManager
 
 _LOGGER = logging.getLogger(__name__)
+
 SUPPORTED_RESOURCE_TYPE = ['inventory.Server', 'inventory.CloudService']
 # flag that checks if get_connection based on region
 PROVIDER_REGION_FILTER = {
@@ -25,8 +32,8 @@ class CollectorService(BaseService):
         super().__init__(metadata)
         self.metric_schema: MetricSchemaManager = MetricSchemaManager(resource_type='inventory.Server')
         self.execute_managers = [
-            'AzureManager',
-            'GoogleCloudManager',
+#            'AzureManager',
+#            'GoogleCloudManager',
             'AWSManager',
         ]
 
@@ -49,9 +56,8 @@ class CollectorService(BaseService):
                 - options
                 - secret_data
         """
-        options = params['options']
-        secret_data = params.get('secret_data', {})
-
+        #options = params['options']
+        self._check_secret_data(params['secret_data'])
         return {}
 
     @transaction
@@ -65,47 +71,40 @@ class CollectorService(BaseService):
                 - secret_data
                 - filter
         """
-
         start_time = time.time()
         print("[ EXECUTOR START: Monitoring Metric Collector ]")
+#        # Provide metric_schema what to collect for metric collector in params
+#        params.update({'metric_schema': self.get_metric_info()})
+#
+        secret_data = params['secret_data']
+        options = params['options']
+        self._check_secret_data(secret_data)
 
-        # Provide metric_schema what to collect for metric collector in params
-        params.update({'metric_schema': self.get_metric_info()})
 
-        secret_data = params.get('secret_data')
-        api_key_from_secret_data = secret_data.get('api_key')
+        api_key = secret_data['api_key']
+        domain_id = self._extract_domain_id(api_key)
+        identity_endpoint = secret_data['endpoint']
+        endpoint_type = options.get('endpoint_type', 'internal')
+        # endpoint_type = internal(default) | public
 
-        if api_key_from_secret_data is None:
-            raise ERROR_NOT_FOUND_API_KEY(api_key=api_key_from_secret_data)
+#       # Add token at transaction, since this plugin will call other micro services(identity, inventory, monitoring)
+        self.transaction.set_meta('token', api_key)
 
-        try:
-            svc_endpoint, domain_id = self._get_end_points(secret_data)
-        except Exception as e:
-            _LOGGER.error(f'[Error] get_end_point of domain: ({domain_id}): {str(e)}', extra={'traceback': traceback.format_exc()})
-            raise ERROR_API_KEY(api_key=api_key_from_secret_data)
-
-        collector_resource = {'end_point_list': svc_endpoint,
-                              'domain_id': domain_id,
-                              'api_key': api_key_from_secret_data.replace(" ", "")}
-
-        inventory_manager, monitoring_manager = self._get_managers(collector_resource)
-        data_source_info = self.get_data_source(monitoring_manager)
-        collector_resource.update({'inventory_manager': inventory_manager,
-                                   'monitoring_manager': monitoring_manager,
-                                   'data_source_info': data_source_info
-                                   })
-
-        all_server_list = inventory_manager.list_servers(None)
-        _providers, _server_ids, _servers, _accounts = self._get_resource_server_params(all_server_list)
+        metric_schema = self.get_metric_info()
 
         for execute_manager in self.execute_managers:
             print(f'@@@ {execute_manager} @@@ \n')
-            executing_manager = self.locator.get_manager(execute_manager, secret_data=collector_resource)
-            if executing_manager.provider in _providers:
-                params.update({'server_ids': _server_ids, 'servers': _servers, 'accounts': _accounts})
-                get_metric_date_executed = executing_manager.collect_resources(params)
-                for metric_data in get_metric_date_executed:
-                    yield metric_data.to_primitive()
+            mon_mgr = self.locator.get_manager(execute_manager)
+
+            results = mon_mgr.collect_resources(identity_endpoint, endpoint_type, metric_schema, domain_id)
+            for result in results:
+                yield result.to_primitive()
+#                
+#            if executing_manager.provider in _providers:
+#                params.update({'server_ids': _server_ids, 'servers': _servers, 'accounts': _accounts})
+#                get_metric_date_executed = executing_manager.collect_resources(params)
+#                for metric_data in get_metric_date_executed:
+#                    yield metric_data.to_primitive()
 
         print(f'TOTAL TIME : {time.time() - start_time} Seconds')
 
@@ -119,51 +118,69 @@ class CollectorService(BaseService):
         return metric_info
 
     @staticmethod
+    def _extract_domain_id(token):
+        try:
+            decoded = JWTUtil.unverified_decode(token)
+            return decoded.get('did')
+        except Exception:
+            _LOGGER.debug(f'[ERROR_AUTHENTICATE_FAILURE] token: {token}')
+            raise ERROR_AUTHENTICATE_FAILURE(message='Cannot decode token.')
+
+    @staticmethod
+    def _check_secret_data(secret_data):
+        """
+        api_key_id(str)
+        api_key(str)
+        endpoint(str)
+        """
+        pass
+
+    @staticmethod
     def _get_end_points(secret_data):
         identity_manager: IdentityManager = IdentityManager(secret_data=secret_data)
         return identity_manager.list_endpoints(), identity_manager.domain_id
 
-    @staticmethod
-    def _get_managers(secret_data):
-        inventory_manager: InventoryManager = InventoryManager(secret_data=secret_data)
-        monitoring_manager: MonitoringManager = MonitoringManager(secret_data=secret_data)
+#    @staticmethod
+#    def _get_managers(secret_data):
+#        inventory_manager: InventoryManager = InventoryManager(secret_data=secret_data)
+#        monitoring_manager: MonitoringManager = MonitoringManager(secret_data=secret_data)
+#
+#        return inventory_manager, monitoring_manager
 
-        return inventory_manager, monitoring_manager
+#    @staticmethod
+#    def _get_data_source_per_provider(data_sources):
+#        data_source_infos = {}
+#        for data_vo in data_sources:
+#            provider = data_vo.get('provider')
+#            source_info = {'name': data_vo.get('name'), 'data_source_id': data_vo.get('data_source_id')}
+#            if provider in data_sources:
+#                source_ref = data_source_infos.get(provider)
+#                source_ref.append(source_info)
+#            else:
+#                data_source_infos.update({provider: [source_info]})
+#        return data_source_infos
 
-    @staticmethod
-    def _get_data_source_per_provider(data_sources):
-        data_source_infos = {}
-        for data_vo in data_sources:
-            provider = data_vo.get('provider')
-            source_info = {'name': data_vo.get('name'), 'data_source_id': data_vo.get('data_source_id')}
-            if provider in data_sources:
-                source_ref = data_source_infos.get(provider)
-                source_ref.append(source_info)
-            else:
-                data_source_infos.update({provider: [source_info]})
-        return data_source_infos
-
-    @staticmethod
-    def _get_metric_ids_per_provider(servers):
-        providers = []
-        provider_vo = {}
-        servers_vo = {}
-
-        for server in servers:
-            if server.get('provider') in providers:
-                provider_vo.get(server.get('provider')).append(server.get('server_id'))
-                servers_vo.get(server.get('provider')).append(server)
-            else:
-                provider = server.get('provider')
-                providers.append(provider)
-                provider_vo.update({
-                    provider: [server.get('server_id')]
-                })
-                servers_vo.update({
-                    provider: [server]
-                })
-
-        return providers, provider_vo, servers_vo
+#    @staticmethod
+#    def _get_metric_ids_per_provider(servers):
+#        providers = []
+#        provider_vo = {}
+#        servers_vo = {}
+#
+#        for server in servers:
+#            if server.get('provider') in providers:
+#                provider_vo.get(server.get('provider')).append(server.get('server_id'))
+#                servers_vo.get(server.get('provider')).append(server)
+#            else:
+#                provider = server.get('provider')
+#                providers.append(provider)
+#                provider_vo.update({
+#                    provider: [server.get('server_id')]
+#                })
+#                servers_vo.update({
+#                    provider: [server]
+#                })
+#
+#        return providers, provider_vo, servers_vo
 
     @staticmethod
     def _get_resource_server_params(servers):

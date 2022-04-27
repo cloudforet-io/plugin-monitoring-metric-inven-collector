@@ -28,3 +28,6 @@ class ERROR_NOT_SUPPORT_STAT(ERROR_INVALID_ARGUMENT):
 
 class ERROR_NOT_SUPPORT_METRIC_FORMAT(ERROR_INVALID_ARGUMENT):
     _message = 'metric format is invalid. (metric_format = {metric_format})'
+
+class ERROR_ENDPOINT_NOT_FOUND(ERROR_BASE):
+    _message = 'endpoint:{service} is not found'

@@ -4,7 +4,7 @@ from google.protobuf.json_format import MessageToDict
 
 from spaceone.core.connector import BaseConnector
 from spaceone.core import pygrpc
-from spaceone.core.utils import parse_endpoint
+from spaceone.core.utils import parse_grpc_endpoint
 from spaceone.core.error import *
 from pprint import pprint
 __all__ = ['MonitoringConnector']
@@ -14,25 +14,15 @@ _LOGGER = logging.getLogger(__name__)
 
 class MonitoringConnector(BaseConnector):
 
-    def __init__(self, transaction, config):
-        super().__init__(transaction, config)
-        self._check_config()
-        self._init_client()
+    def __init__(self, transaction, config, **kwargs):
+        super().__init__(transaction, config, **kwargs)
+        e = parse_grpc_endpoint(self.endpoint)
+        _LOGGER.debug(f'endpoint: {e}')
+        self.client = pygrpc.client(endpoint=e['endpoint'], ssl_enabled=e['ssl_enabled'])
 
-    def _init_client(self):
-        for version, uri in self.config['endpoint'].items():
-            e = parse_endpoint(uri)
-            self.client = pygrpc.client(endpoint=f'{e.get("hostname")}:{e.get("port")}', version=version)
-
-    def _check_config(self):
-        if 'endpoint' not in self.config:
-            raise ERROR_CONNECTOR_CONFIGURATION(backend=self.__class__.__name__)
-
-        if len(self.config['endpoint']) > 1:
-            raise ERROR_CONNECTOR_CONFIGURATION(backend=self.__class__.__name__)
-
-    def list_data_source(self, query, domain_id):
+    def list_data_source(self, provider, query, domain_id):
         response = self.client.DataSource.list({
+            'provider': provider,
             'query': query,
             'domain_id': domain_id
         }, metadata=self.transaction.get_connection_meta())
