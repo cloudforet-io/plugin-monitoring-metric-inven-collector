@@ -6,29 +6,16 @@ from spaceone.core.unittest.runner import RichTestRunner
 from spaceone.tester import TestCase, print_json
 from pprint import pprint
 
-CONFIG_CREDENTIALS_PATH = os.environ.get('CONFIG_PATH', None)
 
-if CONFIG_CREDENTIALS_PATH is None:
-    print("""
-        ##################################################
-        # ERROR 
-        #
-        # Configure your GCP credential first for test
-        # https://console.cloud.google.com/apis/credentials
+api_key = os.environ.get('API_KEY')
+api_key_id = os.environ.get('API_KEY_ID')
+endpoint = os.environ.get('ENDPOINT')
 
-        ##################################################
-        example)
-
-        export GOOGLE_APPLICATION_CREDENTIALS="<PATH>" 
-    """)
-    exit
-
-
-def _get_credentials():
-    with open(CONFIG_CREDENTIALS_PATH) as json_file:
-        json_data = json.load(json_file)
-        return json_data
-
+SECRET = {
+    'api_key': api_key,
+    'api_key_id': api_key_id,
+    'endpoint': endpoint
+}
 
 class TestCollector(TestCase):
 
@@ -38,16 +25,14 @@ class TestCollector(TestCase):
 
     def test_verify(self):
         options = {}
-        secret_data = _get_credentials()
-        v_info = self.inventory.Collector.verify({'options': options, 'secret_data': secret_data})
+        v_info = self.inventory.Collector.verify({'options': options, 'secret_data': SECRET})
         print_json(v_info)
 
     def test_collect(self):
-        secret_data = _get_credentials()
-        options = {}
+        options = {'endpoint_type': 'public'}
         filter = {}
 
-        resource_stream = self.inventory.Collector.collect({'options': options, 'secret_data': secret_data,
+        resource_stream = self.inventory.Collector.collect({'options': options, 'secret_data': SECRET,
                                                             'filter': filter})
         # print(resource_stream)
 
