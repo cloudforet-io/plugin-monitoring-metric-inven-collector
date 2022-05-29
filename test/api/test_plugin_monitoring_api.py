@@ -30,9 +30,10 @@ class TestCollector(TestCase):
 
     def test_collect(self):
         options = {'endpoint_type': 'public',
-                   'supported_metrics': {
-                       'aws': {'inventory.Server': ['disk.write_throughput']}
-                   },
+                   'supported_metrics': [
+                       {'provider': 'aws', 'resource_type': 'inventory.Server',
+                        'metric': ['disk.write_throughput']}
+                   ],
                    'supported_period': 14
                    }
         filter = {}

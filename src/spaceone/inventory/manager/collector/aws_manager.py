@@ -36,20 +36,20 @@ METRIC_SCHEMA = {
 class AWSManager(CollectorManager):
     provider = 'aws'
     # which is collected by default
-    default_metrics = {'inventory.Server': ['cpu.utilization']}
+    default_metrics = [{'resource_type': 'inventory.Server', 'metric': ['cpu.utilization'], 'provider': 'aws'}]
 
 
     def list_supported_metrics(self):
-        response = {}
+        response = []
         result = []
         for key, value in METRIC_SCHEMA.items():
             for item in value:
                 result.append(item['key'])
-            response[key] = result
-        return {self.provider: response}
+            response.append({'resource_type': key, 'metric': result, 'provider': self.provider})
+        return response
 
     def list_default_metrics(self):
-        return {self.provider: self.default_metrics}
+        return self.default_metrics
 
     def _init_members(self, resource_type, period, data_source_id):
         self.data_source_id = data_source_id
@@ -64,7 +64,7 @@ class AWSManager(CollectorManager):
         # collect EC2
         _LOGGER.debug(f'[AWSManager] collect: {self.supported_period} day')
         self._init_members('inventory.Server', self.supported_period, data_source_id)
-        yield self._collect_servers()
+        return self._collect_servers()
 
         # collect RDS
 
@@ -76,7 +76,9 @@ class AWSManager(CollectorManager):
         servers = self.inventory_mgr.list_servers(self.provider, self.domain_id)
         server_group = self._group_server_by_account(servers['results'])
 
-        check_list = self.supported_metrics['inventory.Server']
+        for item in self.supported_metrics:
+            if item['resource_type'] == 'inventory.Server':
+                check_list = item['metric']
 
         for account, server_list in server_group.items():
             # get metric_list
@@ -119,7 +121,7 @@ class AWSManager(CollectorManager):
                         'reference': resource_data.get('reference')
                     }, strict=False)
 
-                    return ServerAwsInstanceResponse({'resource': compute_vm_resource})
+                    yield ServerAwsInstanceResponse({'resource': compute_vm_resource})
 
     def _group_server_by_account(self, server_list):
         server_group = {}

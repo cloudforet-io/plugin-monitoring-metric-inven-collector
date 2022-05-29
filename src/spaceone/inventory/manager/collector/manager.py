@@ -46,7 +46,7 @@ def merge_new_data(data, key, value):
 
 class CollectorManager(BaseManager):
     provider = None
-    default_metrics = {}
+    default_metrics = []
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -76,11 +76,7 @@ class CollectorManager(BaseManager):
                           supported_metrics, supported_period) -> list:
         # init members
         self.domain_id = domain_id
-        temp_supported_metrics = supported_metrics.get(self.provider, {})
-        for k,v in temp_supported_metrics.items():
-            v.extend(self.default_metrics[k])
-        temp_supported_metrics[k] = v
-        self.supported_metrics = temp_supported_metrics
+        self._update_supported_metrics(supported_metrics)
         self.supported_period = int(supported_period)
 
         try:
@@ -104,6 +100,26 @@ class CollectorManager(BaseManager):
         except Exception as e:
             _LOGGER.error(e)
             return []
+
+    def _update_supported_metrics(self, metric_list):
+        self.supported_metrics = self.default_metrics
+        print("XXXX before supported_metrics XXXXX")
+        print(self.supported_metrics)
+
+        temp_by_resource_type = {}
+        for item in metric_list:
+            if item['provider'] != self.provider:
+                continue
+            resource_type = item['resource_type']
+            temp_by_resource_type[resource_type] = item['metric']
+
+        for item in self.supported_metrics:
+            resource_type = item['resource_type']
+            item['metric'].extend(temp_by_resource_type[resource_type])
+
+        print("XXXX after supported_metrics XXXXX")
+        print(self.supported_metrics)
+
 
     def _collect_metric_data_per_provider(self, data_source_id, domain_id) -> list:
         # Implement per provider
