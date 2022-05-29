@@ -36,6 +36,10 @@ class TestCollector(TestCase):
                    ],
                    'supported_period': 14
                    }
+        options = {'endpoint_type': 'public',
+                   'supported_period': 14
+                   }
+ 
         filter = {}
 
         resource_stream = self.inventory.Collector.collect({'options': options, 'secret_data': SECRET,
