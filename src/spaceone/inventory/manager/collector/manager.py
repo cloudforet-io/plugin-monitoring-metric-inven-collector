@@ -12,13 +12,13 @@ from spaceone.inventory.libs.schema.base import ReferenceModel
 from spaceone.inventory.manager.identity_manager import IdentityManager
 from spaceone.inventory.manager.inventory_manager import InventoryManager
 from spaceone.inventory.manager.monitoring_manager import MonitoringManager
-from pprint import pprint
 
 _LOGGER = logging.getLogger(__name__)
 COLLECTIVE_STATE = ['max', 'avg']
 DEFAULT_INTERVAL = 86400
 MAX_WORKER = 20
 MAX_DIVIDING_COUNT = 20
+
 
 def calculate_value_list(stat, value_list):
     if len(value_list) == 0:
@@ -28,6 +28,7 @@ def calculate_value_list(stat, value_list):
         return round(mean(value_list), 1)
     elif stat == 'MAX':
         return round(max(value_list), 1)
+
 
 def merge_new_data(data, key, value):
     """ key: cpu.utilization
@@ -61,7 +62,7 @@ class CollectorManager(BaseManager):
         self.start = None   # will be calculated by supported period
         self.end = datetime.utcnow()
         self.period = None
-        self.stat =None
+        self.stat = None
         self.domain_id = None
         self.resources_dic = {}         # dictionary per server_id or cloud_service_id
         self.supported_metrics = {}     # supported_metrics from options
@@ -103,8 +104,6 @@ class CollectorManager(BaseManager):
 
     def _update_supported_metrics(self, metric_list):
         self.supported_metrics = self.default_metrics
-        print("XXXX before supported_metrics XXXXX")
-        print(self.supported_metrics)
 
         temp_by_resource_type = {}
         for item in metric_list:
@@ -115,11 +114,10 @@ class CollectorManager(BaseManager):
 
         for item in self.supported_metrics:
             resource_type = item['resource_type']
-            item['metric'].extend(temp_by_resource_type[resource_type])
+            if resource_type in temp_by_resource_type:
+                item['metric'].extend(temp_by_resource_type[resource_type])
 
-        print("XXXX after supported_metrics XXXXX")
-        print(self.supported_metrics)
-
+        _LOGGER.debug(f'supported_metrics: {self.supported_metrics}')
 
     def _collect_metric_data_per_provider(self, data_source_id, domain_id) -> list:
         # Implement per provider
@@ -147,7 +145,6 @@ class CollectorManager(BaseManager):
         for data_source in data_sources:
             result.append(data_source['data_source_id'])
         return result
-
 
     def _list_resource_ids(self, resource_vos):
         # list resource_id from resource_vos
