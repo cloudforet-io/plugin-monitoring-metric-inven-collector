@@ -46,8 +46,6 @@ class MonitoringConnector(BaseConnector):
             print(f'[ERROR: {e}]')
             raise e
 
-
-
     @staticmethod
     def _change_message(message):
         return MessageToDict(message, preserving_proto_field_name=True)

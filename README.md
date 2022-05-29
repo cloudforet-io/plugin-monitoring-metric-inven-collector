@@ -55,4 +55,47 @@ Contact system admin if you need to issue a new service account credential.
 | network.sent_pps | (counts)| NetworkOut | Outbound Flows | compute.googleapis.com/instance/network/sent_packets_count |
 
 
+# Administration
 
+
+plugin_info
+
+***default_metrics*** is the metric which is collected. ***supported_metrics*** is the metric which can be collcted.
+
+
+
+~~~
+{'metadata': {'default_metrics': {'aws': {'inventory.Server': ['cpu.utilization']}},
+              'filter_format': [],
+              'supported_metrics': {'aws': {'inventory.Server': ['cpu.utilization',
+                                                                 'disk.write_iops',
+                                                                 'disk.write_iops',
+                                                                 'disk.write_throughput',
+                                                                 'disk.write_throughput',
+                                                                 'disk.read_iops',
+                                                                 'disk.read_iops',
+                                                                 'disk.read_throughput',
+                                                                 'disk.read_throughput',
+                                                                 'network.received_throughput',
+                                                                 'network.received_pps',
+                                                                 'network.sent_throughput',
+                                                                 'network.sent_pps']}},
+              'supported_resource_type': ['inventory.Server',
+                                          'inventory.CloudService']}}
+~~~
+
+options
+
+If you want to collect more metric, please update ***options***
+
+***supported_period*** is collection period. default is 1 day.
+If you set as 14, the metric value is average(or max) of 14 days.
+
+~~~
+options = {
+	   'supported_metrics': {
+	       'aws': {'inventory.Server': ['disk.write_throughput']}
+	       },
+	   'supported_period': 14
+	   }
+~~~
