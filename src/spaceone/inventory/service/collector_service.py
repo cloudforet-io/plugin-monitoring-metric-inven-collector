@@ -40,13 +40,13 @@ class CollectorService(BaseService):
             'filter_format': FILTER_FORMAT,
             'supported_resource_type': SUPPORTED_RESOURCE_TYPE
         }
-        supported_metrics = {}
-        default_metrics = {}
+        supported_metrics = []
+        default_metrics = []
 
         for execute_manager in self.execute_managers:
             mon_mgr = self.locator.get_manager(execute_manager)
-            supported_metrics.update(mon_mgr.list_supported_metrics())
-            default_metrics.update(mon_mgr.list_default_metrics())
+            supported_metrics.extend(mon_mgr.list_supported_metrics())
+            default_metrics.extend(mon_mgr.list_default_metrics())
 
         capability['supported_metrics'] = supported_metrics
         capability['default_metrics'] = default_metrics
@@ -92,9 +92,10 @@ class CollectorService(BaseService):
         supported_metrics = options.get('supported_metrics', {})
         supported_period = options.get('supported_period', 1)
         """
-        'supported_metrics': {
-           'aws': {'inventory.Server': ['cpu.utilization', 'disk.write_throughput']}
-        }
+        'supported_metrics': [
+           {'provider': 'aws', 'resource_type': 'inventory.Server',
+           'metric': ['cpu.utilization', 'disk.write_throughput']}
+        ]
         """
         # Add token at transaction,
         # since this plugin will call other micro services(identity, inventory, monitoring)

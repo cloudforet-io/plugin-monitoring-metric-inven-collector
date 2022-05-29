@@ -65,23 +65,28 @@ plugin_info
 
 
 ~~~
-{'metadata': {'default_metrics': {'aws': {'inventory.Server': ['cpu.utilization']}},
+{'metadata': {'default_metrics': [{'metric': ['cpu.utilization'],
+                                   'provider': 'aws',
+                                   'resource_type': 'inventory.Server'}],
               'filter_format': [],
-              'supported_metrics': {'aws': {'inventory.Server': ['cpu.utilization',
-                                                                 'disk.write_iops',
-                                                                 'disk.write_iops',
-                                                                 'disk.write_throughput',
-                                                                 'disk.write_throughput',
-                                                                 'disk.read_iops',
-                                                                 'disk.read_iops',
-                                                                 'disk.read_throughput',
-                                                                 'disk.read_throughput',
-                                                                 'network.received_throughput',
-                                                                 'network.received_pps',
-                                                                 'network.sent_throughput',
-                                                                 'network.sent_pps']}},
+              'supported_metrics': [{'metric': ['cpu.utilization',
+                                                'disk.write_iops',
+                                                'disk.write_iops',
+                                                'disk.write_throughput',
+                                                'disk.write_throughput',
+                                                'disk.read_iops',
+                                                'disk.read_iops',
+                                                'disk.read_throughput',
+                                                'disk.read_throughput',
+                                                'network.received_throughput',
+                                                'network.received_pps',
+                                                'network.sent_throughput',
+                                                'network.sent_pps'],
+                                     'provider': 'aws',
+                                     'resource_type': 'inventory.Server'}],
               'supported_resource_type': ['inventory.Server',
                                           'inventory.CloudService']}}
+
 ~~~
 
 options
@@ -93,9 +98,9 @@ If you set as 14, the metric value is average(or max) of 14 days.
 
 ~~~
 options = {
-	   'supported_metrics': {
-	       'aws': {'inventory.Server': ['disk.write_throughput']}
-	       },
+	   'supported_metrics': [
+	   	{'provider': 'aws', 'resource_type': 'inventory.Server': 'metric': ['disk.write_throughput']}
+	   ],
 	   'supported_period': 14
 	   }
 ~~~
