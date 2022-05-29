@@ -28,44 +28,31 @@ class MonitoringManager(BaseManager):
         data_source_list = data_sources.get('results', [])
         return data_source_list
 
-    def get_metric_list(self, data_source_id, resource_type, resources, domain_id):
-        param = {
-            'data_source_id': data_source_id,
-            'resource_type': resource_type,
-            'resources': resources
-        }
-        metrics = self.connector.metric_list(param, domain_id)
-        return metrics
-
     def get_metric_data(self, data_source_id, resource_type, resources, metric, start, end, domain_id, period, stat):
-
-        metrics = {'domain_id': domain_id,
-                   'labels': [],
-                   'resource_values': {}
-                   }
-
 
         param = {
             'data_source_id': data_source_id,
             'resource_type': resource_type,
             'resources': resources,
             'metric': metric,
+            'stat': stat,
             'start': utils.datetime_to_iso8601(start),
             'end': utils.datetime_to_iso8601(end),
         }
-        if period:
-            param.update({'period': period})
 
-        if stat:
-            param.update({'stat': stat})
+        # TODO: choonho, This is AWS specific
+        param.update({'period': period * 86400})
 
         try:
             metrics = self.connector.metric_get_data(param, domain_id)
         except Exception as e:
-
             print('##################################')
             print(f'[ERROR: {e}]')
             print('##################################')
+            metrics = {'domain_id': domain_id,
+                       'labels': [],
+                       'resource_values': {}
+                       }
 
         return metrics
 
@@ -82,19 +69,3 @@ class MonitoringManager(BaseManager):
         })
 
         return query
-
-    @staticmethod
-    def _get_transaction(secret_data):
-        return Transaction({'token': secret_data.get('api_key', None)})
-
-    @staticmethod
-    def _get_config(secret_data, service_name):
-        end_point_list = secret_data.get('end_point_list', [])
-        for end_point in end_point_list:
-            if end_point.get('service') == service_name:
-                ep = end_point.get('endpoint')
-                return {
-                    "endpoint": {
-                        ep[ep.rfind('/') + 1:]: ep[0:ep.rfind('/')]
-                    }
-                }

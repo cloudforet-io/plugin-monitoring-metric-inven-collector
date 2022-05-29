@@ -23,13 +23,18 @@ class TestCollector(TestCase):
         v_info = self.inventory.Collector.init({'options': {}})
         print_json(v_info)
 
-    def test_verify(self):
+    def _test_verify(self):
         options = {}
         v_info = self.inventory.Collector.verify({'options': options, 'secret_data': SECRET})
         print_json(v_info)
 
     def test_collect(self):
-        options = {'endpoint_type': 'public'}
+        options = {'endpoint_type': 'public',
+                   'supported_metrics': {
+                       'aws': {'inventory.Server': ['disk.write_throughput']}
+                   },
+                   'supported_period': 14
+                   }
         filter = {}
 
         resource_stream = self.inventory.Collector.collect({'options': options, 'secret_data': SECRET,

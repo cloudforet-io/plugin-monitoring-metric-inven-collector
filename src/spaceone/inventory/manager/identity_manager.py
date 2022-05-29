@@ -23,5 +23,4 @@ class IdentityManager(BaseManager):
         """
         self.connector = self.locator.get_connector('IdentityConnector', endpoint=identity_endpoint)
         endpoints = self.connector.get_end_points(domain_id, endpoint_type)
-        _LOGGER.debug(f'[list_endpoints] endpoints: {endpoints}')
         return endpoints['results']

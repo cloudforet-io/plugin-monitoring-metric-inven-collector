@@ -6,6 +6,7 @@ class MetricModel(Model):
     metric = StringType(default='')
     resource_type = StringType(default='inventory.Server')
 
+
 class Provider(Model):
     aws = ListType(ModelType(MetricModel), default=[], serialize_when_none=False)
     google_cloud = ListType(ModelType(MetricModel), default=[], serialize_when_none=False)
