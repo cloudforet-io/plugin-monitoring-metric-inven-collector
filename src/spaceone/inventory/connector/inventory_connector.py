@@ -15,8 +15,8 @@ _LOGGER = logging.getLogger(__name__)
 
 class InventoryConnector(BaseConnector):
 
-    def __init__(self, transaction, config, **kwargs):
-        super().__init__(transaction, config, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         #self._check_config()
         #self._init_client()
         e = parse_grpc_endpoint(self.endpoint)

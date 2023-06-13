@@ -14,8 +14,8 @@ _LOGGER = logging.getLogger(__name__)
 
 class IdentityConnector(BaseConnector):
 
-    def __init__(self, transaction, config, **kwargs):
-        super().__init__(transaction, config, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         e = parse_grpc_endpoint(self.endpoint)
         self.client = pygrpc.client(endpoint=e['endpoint'], ssl_enabled=e['ssl_enabled'])
 
