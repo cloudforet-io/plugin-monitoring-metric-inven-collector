@@ -46,8 +46,8 @@ METRIC_SCHEMA = {
 
 
 class MetricSchemaManager(BaseManager):
-    def __init__(self, **kwargs):
-        super().__init__(transaction=None, config=None)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.providers = SUPPORTED_PROVIDERS
 
         try:
